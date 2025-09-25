@@ -92,8 +92,9 @@ SET('X','Y') para listas múltiples (se usa poco hoy en día).
 
 11.2) Descargamos MySQL Workbench, se instalo en C:\Program Files\MySQL\MySQL Workbench 8.0 CE\, setup type: complete.
 
-X) utilizamos inspectdb para crear el MER en django para utilizar el ORM.
+X) utilizamos inspectdb para traer las tablas de mysql en django para utilizar el ORM.
 
 X) Encriptar tablas.
+
 
 Leer: https://docs.djangoproject.com/en/5.2/topics/install/#install-apache-and-mod-wsgi | https://docs.djangoproject.com/en/5.2/ref/databases/#mysql-notes | 
