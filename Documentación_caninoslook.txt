@@ -1,0 +1,99 @@
+1) Creamos el ambiente virtual (Virutal Environment): python -m venv venv_caninoslook
+1.1) Siempre hay que activar el ambiente virtual desde cmd en la carpeta que se creo el venv: caninoslook\Scripts\activate.bat
+1.2) Así debe estar la terminal del cmd una vez activado: (caninoslook) C:\Users\agust\CAPSTONE>
+
+2) Instalamos Django: python -m pip install Django
+2.1) Se instalo: Successfully installed Django-5.2.6 asgiref-3.9.1 sqlparse-0.5.3 tzdata-2025.2
+
+3) Instalar MySQL Community Downloads: https://dev.mysql.com/downloads/mysql/8.4.html | Me descargue la 8.4.6, al ejecutar el instalador, aceptamos los términos de la licencia, escogemos typical e instalamos, al finalizar dejamos marcada la opción de abrir MySQL configurator, data directory: C:\ProgramData\MySQL\MySQL Server 8.4\, type and networking: development computer, marcamos tcp/ip port y X protocol port en 3306 y también marcamos open Windows firewall ports for network access. Luego configuramos la contraseña del root y no agregamos ningún usuario más. Luego, desmarco la casilla que sale que se inicie MySQL server al prender el equipo, el nombre del servicio es MySQL84. Luego, selecciono: Sí, otorgar acceso completo al usuario que ejecuta el Servicio de Windows (si corresponde) y solo al grupo de administradores. Otros usuarios y grupos no tendrán acceso. en la parte de sample databases no marco ninguna. Luego finalmente ejecutamos.
+3.1) Para iniciar o levantar el servidor de MySQL debemos abrir cmd como administradores (win + r, escribimos cmd, matenemos ctrl + shift y presionamos enter) y ejecutamos net start/stop mysql84 (Que es el nombre del servicio que configuramos en MySQL configurator).
+
+*) Al momento de la instalación marcamos open Windows firewall ports for network access. Lo cual puede transformarse en un problema de seguridad por dejar el puerto de MySQL abierto. Abro el bloc de notas como administrador y desde el bloc busco el archivo my.ini que esta en C:\ProgramData\MySQL\MySQL Server 8.4, editar el archivo my.ini abajo del [mysqld] agregar bind-address=127.0.0.1. Ahora otra cosa, también configuramos X protocol port y para desactivarlo abajo de bind-address escribimos mysqlx=0
+
+4) Creando base de datos.
+4.1) create database caninoslook;
+
+5) Creando usuario adminCanLook en MySQL.
+5.1) create user 'adminCanLook'@'localhost' identified by '****'; 
+5.2) grant select, insert, update, delete on caninoslook.* TO 'adminCanLook'@'localhost';
+
+6) Instalamos mysqlclient.
+6.1) activamos ambiente virtual Python (paso 1.1).
+6.2) ejecutamos pip install mysqlclient --> Successfully installed mysqlclient-2.2.7
+
+*Para documentar las librerías/dependencias del venv (paso 1), ejecutamos el siguiente comando: pip freeze > Requirements.txt, hasta ahora tenemos: asgiref==3.9.1 Django==5.2.6 mysqlclient==2.2.7 sqlparse==0.5.3 tzdata==2025.2.
+
+7) Creando proyecto django.
+7.1) django-admin startproject djangoproject_caninoslook
+
+8) Conectar proyecto con MySQL.
+8.1) Configuramos la contraseña de usuario admin en una variable de entorno de usuario como adminCanLook para que no quede en settings.py de django.
+8.2) En el archivo settings.py ubicamos databases, cambiamos ENGINE por 'django.db.backends.mysql', NAME por el nombre de la base de datos en MySQL (paso 4.1 (caninoslook)) y agregamos: 'USER': 'adminCanLook' y 'PASSWORD': os.environ.get("adminCanLook"). Antes de agregar password debemos importar la biblioteca os (import os).
+
+Opcional) Probamos que arranque bien. Activamos venv, dentro de venv_caninoslook nos dirijimos a la carpeta del proyecto donde este el archivo manage.py y ejecutamos: py manage.py runserver.
+
+9) Configurando mas cosas en settings.py.
+9.1) Guardamos secret_key en variables de entorno de usuario como djangoCanLook_secretkey.
+9.2) Configuramos lenguage_code como 'es-cl'.
+9.3) Configuramos TIME_ZONE como 'America/Santiago'.
+9.4) Chatgpt nos recomienda dejar USE_TZ en TRUE, ya que en algunas situaciones con apis puede haber errores ya que vienen con la zona horaria de UTC y no en local o algo así, la cosa es que siempre se nos van a guardar las fechas en horario UTC pero para mostrar esa fecha en la zona local que configuramos en TIME_ZONE es {{ evento.fecha|localtime }}
+9.5) INSTALLED_APPS, instalamos todo lo que nos ofrece django: django.contrib.admin (ayuda con el sitio del administrador), auth (ayuda con diferentes roles y permisos), contenttypes (no lo entendí muy bien pero creo que ayuda a programar de forma más sencilla), sessions (gestiona sesiones de los usuarios), messages (crea notificaciones temporales), staticfiles (gestiona archivos estáticos)
+
+10) Migramos las tablas de installed app a mysql (ya que necesitan espacio en la base de datos, configuramos el root en settings.py).
++----------------------------+
+| Tables_in_caninoslook      |
++----------------------------+
+| auth_group                 |
+| auth_group_permissions     |
+| auth_permission            |
+| auth_user                  |
+| auth_user_groups           |
+| auth_user_user_permissions |
+| django_admin_log           |
+| django_content_type        |
+| django_migrations          |
+| django_session             |
++----------------------------+ Al hacer la migración se crearon todas estas tablas.
+
+11) Creamos modelo MER o más bien EER en mysql.
+11.1) Buscamos características que pueden tener los atributos.
+🔹 1. Nulabilidad
+NULL: el campo puede quedar vacío.
+NOT NULL: obligatorio.
+💡 Consejo: por defecto deja NOT NULL en los campos importantes para evitar datos incompletos.
+🔹 2. Tipo de dato
+Numéricos: INT, BIGINT, SMALLINT, DECIMAL(m,d), FLOAT, DOUBLE…
+Cadenas: CHAR(n) (fijo), VARCHAR(n) (variable), TEXT (grande).
+Fechas: DATE, DATETIME, TIMESTAMP, TIME, YEAR.
+Booleanos: TINYINT(1) (MySQL los trata así).
+🔹 3. Tamaño / precisión
+VARCHAR(n): n = longitud máxima de la cadena.
+DECIMAL(m,d): m = dígitos totales, d = decimales.
+Los enteros ya no usan “INT(11)” como tamaño visual en nuevas versiones, pero puedes seguir viéndolo en viejas bases.
+🔹 4. Valores por defecto
+DEFAULT valor: qué se guarda si no mandas nada.
+precio DECIMAL(10,2) NOT NULL DEFAULT 0.00
+🔹 5. Auto incremento
+AUTO_INCREMENT: solo para enteros, aumenta automáticamente con cada inserción.
+id INT PRIMARY KEY AUTO_INCREMENT
+🔹 6. Llaves y restricciones
+PRIMARY KEY: identificador único de la tabla.
+UNIQUE: no puede repetirse ese valor en la columna.
+INDEX: acelera búsquedas.
+FOREIGN KEY: relación con otra tabla (integridad referencial).
+🔹 7. Comentarios
+COMMENT 'texto': documentar la columna directamente en MySQL.
+🔹 8. Otros detalles útiles
+UNSIGNED en numéricos: no admite negativos pero duplica el rango positivo.
+ZEROFILL (deprecated en MySQL 8.0): rellena con ceros a la izquierda.
+ON UPDATE CURRENT_TIMESTAMP para actualizar automáticamente la fecha/hora al modificar el registro.
+ENUM('A','B','C') para campos con valores fijos.
+SET('X','Y') para listas múltiples (se usa poco hoy en día).
+
+11.2) Descargamos MySQL Workbench, se instalo en C:\Program Files\MySQL\MySQL Workbench 8.0 CE\, setup type: complete.
+
+X) utilizamos inspectdb para crear el MER en django para utilizar el ORM.
+
+X) Encriptar tablas.
+
+Leer: https://docs.djangoproject.com/en/5.2/topics/install/#install-apache-and-mod-wsgi | https://docs.djangoproject.com/en/5.2/ref/databases/#mysql-notes | 
