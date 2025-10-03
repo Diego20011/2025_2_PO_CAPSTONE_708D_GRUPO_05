@@ -1,0 +1,9 @@
+<h2>Crear cuenta</h2>
+<form method="POST">
+    {%csrf_token%}
+    {{form.as_p}}
+    {% if cuentaCreada == True %}
+    <p>Cuenta creada con exito!</p>
+    {% endif %}
+    <button type="submit">Crear</button>
+</form>

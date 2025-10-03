@@ -18,7 +18,7 @@ class Reserva(models.Model):
     confirm_pago_res = models.IntegerField()
     canino_id_canino = models.ForeignKey('Canino', on_delete=models.PROTECT, db_column='canino_id_canino')
     cliente_id_cliente = models.ForeignKey('Cliente', on_delete=models.PROTECT, db_column='cliente_id_cliente')
-    sesion_id_sesion = models.ForeignKey('Sesion', on_delete=models.PROTECT, db_column='sesion_id_sesion')
+    sesion_id_sesion = models.ForeignKey('sesiones.Sesion', on_delete=models.PROTECT, db_column='sesion_id_sesion')
 
     class Meta:
         managed = False
