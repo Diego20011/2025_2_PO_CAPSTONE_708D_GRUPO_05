@@ -31,6 +31,7 @@ class Cliente(models.Model):
     apellidos_cli = models.CharField(max_length=30)
     email_cli = models.CharField(max_length=70)
     numero_cli = models.IntegerField()
+    password      = models.CharField(max_length=128)
 
     class Meta:
         managed = False

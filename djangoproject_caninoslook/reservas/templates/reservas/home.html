@@ -1,0 +1,10 @@
+{% extends "reservas/base.html" %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+  <h1>Bienvenido a CaninosLook</h1>
+  {% if request.user.is_authenticated %}
+    <p>Estás logueado como {{ request.user.username }}.</p>
+  {% else %}
+    <p>Puedes <a href="{% url 'login' %}">iniciar sesión</a> para reservar más rápido.</p>
+  {% endif %}
+{% endblock %}

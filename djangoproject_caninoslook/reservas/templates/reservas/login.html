@@ -1,0 +1,14 @@
+{% extends "reservas/base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+  <h2>Iniciar sesión</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <label>Usuario o Email</label>
+    <input type="text" name="user_or_email" required autofocus>
+    <label>Contraseña</label>
+    <input type="password" name="password" required>
+    <button type="submit">Ingresar</button>
+  </form>
+{% endblock %}
