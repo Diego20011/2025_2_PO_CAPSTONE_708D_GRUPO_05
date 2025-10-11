@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{% static 'reservas/images/logo_caninoslook_zoom.png' %}">
+    <title>C.L - Reserva de hora</title>
+</head>
+<body>
+    <!-- Primero obtenemos los datos que necesitamos para ver la disponibilidad, tipo de servicio y fecha -->
+    <!-- Enviamos el input a la view reserva "{% url 'reserva' %}", el nombre reserva viene del name que esta en urls.py, no viene de view.py. Get para obtener datos.-->
+    <form method="get" action="{% url 'reserva' %}">
+        <h1>Reserva de hora</h1>
+        <label for="servicio">Selecciona un servicio:</label>
+        <select name="servicio" id="servicio" required>
+        <option value="">-- Selecciona --</option>
+        <option value="corte">Corte de pelo</option>
+        <option value="baño">Baño</option>
+        </select>
+        <label for="fecha_reserva">Ingrese la fecha de la reserva:</label>
+        <!-- Utilizamos la propiedad onchange para que envíe el formulario al seleccionar la fecha -->
+        <input type="date" name="fecha_reserva" id="fecha_reserva" onchange="this.form.submit()">
+    </form>
+<!--
+    <label for="servicios">Selecciona los servicios:</label>
+    <div class="caja-servicios">
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="corte">
+        Corte de pelo
+        </label>
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="bano">
+        Baño
+        </label>
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="uñas">
+        Corte de uñas
+        </label>
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="limpieza">
+        Limpieza dental
+        </label>
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="perfume">
+        Perfume
+        </label>
+        <label class="item-servicio">
+        <input type="radio" name="servicios" value="masaje">
+        Masaje relajante
+        </label>
+    </div> -->
+
+    {% if servSelecc != None and servSelecc != "" %}
+        <h2>Horas disponibles para "{{ servSelecc }}" el "{{ fechaD_formateada }}"</h2>
+        {% if servSelecc == "baño" %}
+            {% for h in horasD_baño %}
+                <div class="caja-servicios">
+                    <label class="item-servicio">{{ h }}</label>
+                    <input type="radio" name="hora" value="{{ h }}">
+                </div>
+            {% endfor %}
+        {% elif servSelecc == "corte" %}
+            {% for h in horasD_corte %}
+                <div class="caja-servicios">
+                    <label class="item-servicio">{{ h }}</label>
+                    <input type="radio" name="hora" value="{{ h }}">
+                </div>
+            {% endfor %}
+        {% endif %}
+        <button>Confirmar</button>
+    {% elif fechaD_formateada != "" %}
+        <h2> Selecciona un servicio y una fecha para ver las horas disponibles.</h2>
+    {% endif %}
+
+</body>
+</html>
