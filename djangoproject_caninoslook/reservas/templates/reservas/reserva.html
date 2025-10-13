@@ -15,61 +15,46 @@
         <label for="servicio">Selecciona un servicio:</label>
         <select name="servicio" id="servicio" required>
         <option value="">-- Selecciona --</option>
-        <option value="corte">Corte de pelo</option>
-        <option value="baño">Baño</option>
+        <option value="Corte">Corte de pelo</option>
+        <option value="Baño">Baño</option>
         </select>
         <label for="fecha_reserva">Ingrese la fecha de la reserva:</label>
         <!-- Utilizamos la propiedad onchange para que envíe el formulario al seleccionar la fecha -->
         <input type="date" name="fecha_reserva" id="fecha_reserva" onchange="this.form.submit()">
     </form>
-<!--
-    <label for="servicios">Selecciona los servicios:</label>
-    <div class="caja-servicios">
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="corte">
-        Corte de pelo
-        </label>
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="bano">
-        Baño
-        </label>
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="uñas">
-        Corte de uñas
-        </label>
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="limpieza">
-        Limpieza dental
-        </label>
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="perfume">
-        Perfume
-        </label>
-        <label class="item-servicio">
-        <input type="radio" name="servicios" value="masaje">
-        Masaje relajante
-        </label>
-    </div> -->
 
-    {% if servSelecc != None and servSelecc != "" %}
+    {% if servSelecc != None and servSelecc != "" %} <!--Lógica: el usuario va a tener que enviar la fecha si o si, entonces, 
+                                                         solo cuando servSelecc sea distinto a vacío desplegará las horas según el servicio-->
         <h2>Horas disponibles para "{{ servSelecc }}" el "{{ fechaD_formateada }}"</h2>
-        {% if servSelecc == "baño" %}
-            {% for h in horasD_baño %}
-                <div class="caja-servicios">
-                    <label class="item-servicio">{{ h }}</label>
-                    <input type="radio" name="hora" value="{{ h }}">
-                </div>
-            {% endfor %}
-        {% elif servSelecc == "corte" %}
-            {% for h in horasD_corte %}
-                <div class="caja-servicios">
-                    <label class="item-servicio">{{ h }}</label>
-                    <input type="radio" name="hora" value="{{ h }}">
-                </div>
-            {% endfor %}
-        {% endif %}
-        <button>Confirmar</button>
-    {% elif fechaD_formateada != "" %}
+        <form method="get" action="{% url 'reserva' %}">
+            <input type="hidden" name="servicio" value="{{ servSelecc }}">
+            <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
+            {% if servSelecc == "Baño" %}
+                {% for h in horasD_baño %}
+                    <div class="caja-servicios">
+                        <label class="item-servicio">{{ h }}</label>
+                        <input type="radio" name="hora" value="{{ h }}">
+                    </div>
+                {% endfor %}
+            {% elif servSelecc == "Corte" %}
+                {% for h in horasD_corte %}
+                    <div class="caja-servicios">
+                        <label class="item-servicio">{{ h }}</label>
+                        <input type="radio" name="hora" value="{{ h }}">
+                    </div>
+                {% endfor %}
+            {% endif %}
+                    <label for="perro">Perro:</label>
+                    <select id="perro" name="perro" required>
+                        <option value="">Seleccionar perro</option>
+                        {% for p in perros_cli %}
+                            <option value="{{ p.pk }}">{{ p.nombre_can }}</option>
+                        {% endfor %}
+                    </select>
+
+            <button type="submit">Reservar</button>
+        </form>
+    {% elif fechaD_formateada != "" %} <!--Lógica: si el usuario selecciona solo la fecha, sin seleccionar el servicio-->
         <h2> Selecciona un servicio y una fecha para ver las horas disponibles.</h2>
     {% endif %}
 

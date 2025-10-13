@@ -14,9 +14,25 @@ class Sesion(models.Model):
     comentarios_ses = models.TextField(blank=True, null=True)
     hora_inicio_ses = models.TimeField(blank=True, null=True)
     hora_termino_ses = models.TimeField(blank=True, null=True)
-    canino_id_canino = models.ForeignKey('reservas.Canino', on_delete=models.PROTECT, db_column='canino_id_canino')
-    reserva_id_reserva = models.ForeignKey('reservas.Reserva', on_delete=models.PROTECT, db_column='reserva_id_reserva')
+    canino_id_canino = models.ForeignKey('Canino', models.DO_NOTHING, db_column='canino_id_canino')
+    reserva_id_reserva = models.ForeignKey('Reserva', models.DO_NOTHING, db_column='reserva_id_reserva')
 
     class Meta:
         managed = False
         db_table = 'sesion'
+
+
+class Reserva(models.Model):
+    id_reserva = models.AutoField(primary_key=True)
+    servicio_res = models.CharField(max_length=20)
+    hora_res = models.TimeField()
+    fecha_res = models.DateField()
+    medio_pago_res = models.CharField(max_length=15)
+    valor_res = models.IntegerField()
+    confirm_pago_res = models.IntegerField()
+    cliente_id_cliente = models.ForeignKey('Cliente', models.DO_NOTHING, db_column='cliente_id_cliente')
+    canino_id_canino = models.ForeignKey('Canino', models.DO_NOTHING, db_column='canino_id_canino')
+
+    class Meta:
+        managed = False
+        db_table = 'reserva'

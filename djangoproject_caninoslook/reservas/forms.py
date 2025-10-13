@@ -2,7 +2,7 @@
 from django import forms
 from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password
-from .models import Cliente
+from .models import Cliente, Canino
 
 telefono_validator = RegexValidator(
     regex=r'^\d{1,9}$',
@@ -79,3 +79,9 @@ class ClienteForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+class CaninoForm(forms.ModelForm):
+    class Meta:
+        model = Canino
+        fields = ["nombre_can", "edad_can", "raza_can", "peso_can", "tamano_can","cuidados_esp_can"]

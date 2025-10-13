@@ -16,9 +16,8 @@ class Reserva(models.Model):
     medio_pago_res = models.CharField(max_length=15)
     valor_res = models.IntegerField()
     confirm_pago_res = models.IntegerField()
-    canino_id_canino = models.ForeignKey('Canino', on_delete=models.PROTECT, db_column='canino_id_canino')
     cliente_id_cliente = models.ForeignKey('Cliente', on_delete=models.PROTECT, db_column='cliente_id_cliente')
-    sesion_id_sesion = models.ForeignKey('sesiones.Sesion', on_delete=models.PROTECT, db_column='sesion_id_sesion')
+    canino_id_canino = models.ForeignKey('Canino', on_delete=models.PROTECT, db_column='canino_id_canino')
 
     class Meta:
         managed = False
@@ -36,6 +35,9 @@ class Cliente(models.Model):
     class Meta:
         managed = False
         db_table = 'cliente'
+    
+    #def __str__(self):
+    #    return f"{self.nombres_cli} {self.apellidos_cli}"
 
 
 class Canino(models.Model):

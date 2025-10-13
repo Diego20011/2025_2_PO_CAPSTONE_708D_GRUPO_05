@@ -5,6 +5,6 @@
   {% if request.user.is_authenticated %}
     <p>Estás logueado como {{ request.user.username }}.</p>
   {% else %}
-    <p>Puedes <a href="{% url 'login' %}">iniciar sesión</a> para reservar más rápido.</p>
+    <p>Puedes <a href="{% url 'reg_canino' %}">registrar a tu perro</a> para reservar más rápido.</p>
   {% endif %}
 {% endblock %}

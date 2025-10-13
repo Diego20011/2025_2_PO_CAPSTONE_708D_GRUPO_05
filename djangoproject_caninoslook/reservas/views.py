@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect
-from .forms import ClienteForm
+from .forms import ClienteForm, CaninoForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
-from .models import Cliente, Reserva
+from .models import Cliente, Reserva, Canino
+from sesiones.models import Sesion
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 def registrar_cliente(request):
@@ -28,6 +30,18 @@ def registrar_cliente(request):
 
     return render(request, "reservas/registro.html", {"form": form})
 
+def registrar_canino(request):
+    if request.method == 'POST':
+        form = CaninoForm(request.POST)
+        if form.is_valid():
+            canino = form.save(commit=False)
+            canino.cliente_id_cliente_id = request.session.get('cliente_id')
+            canino.save()
+            return redirect('reserva')
+    else:
+        form = CaninoForm()
+
+    return render(request, 'reservas/reg_perro.html', {'form': form})
 
 def home(request):
     return render(request, "reservas/home.html")
@@ -67,27 +81,17 @@ def reserva(request):
 
     #Consulta a la base de datos con fecha sin formatear, ordenamos la consulta para que esten los más tempranos primero.
     res_x_fecha = Reserva.objects.filter(fecha_res=fechaDeseada).order_by('hora_res')
-
     #Creamos lista de horas cada 30min desde las 9am - 17:30pm ("09:00:00", "09:30:00"...).
     lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 30)]
-    horasTo_baño = []
-    horasTo_corte= []
+    #horasTo_baño = []
+    #horasTo_corte= []
     horasD_baño = []
     horasD_corte= []
-    #Creamos las horas disponibles comparando las horas que están tomadas con las horas predeterminadas, agregando a lista_horasD solo las disponibles.
+    
     #Baño=1h, Corte=3h.
 
-    #PRUEBA, conclusion: cuando se ejecuta del sobre la lista, efectivamente el len de la lista cambia.
-    #a=0
-    #listaP=[0,1,2]
-    #while a < len(listaP):
-    #    del listaP[0]
-    #    jeje=len(listaP)
-    #    a=4 
-
-
     #Este código se encarga de mostrar los horarios disponibles
-    if res_x_fecha.exists():
+    if res_x_fecha.exists() and servSelecc != "":
         i = 0 #i pq si.
         c = 0 #c de consulta
         #Este código recorre la lista_horas_full (full disponibilidad) y también recorre la lista de la consulta (a la base de datos que trae las reservas hechas).
@@ -119,14 +123,14 @@ def reserva(request):
 
         q = 0 #q de quitar
         q2 = 0
-        if servSelecc == "baño":
+        if servSelecc == "Baño":
             while q+1 < len(horasTo_baño):
                 #      datetime.strptime convierte hora en datetime para poder sumarle o restarle minutos.
                 if (datetime.strptime(horasTo_baño[q], "%H:%M:%S") + timedelta(minutes=30)).strftime("%H:%M:%S") == horasTo_baño[q+1]: #.strftime("%H:%M:%S") convierte hora en string.
                     horasD_baño.append(horasTo_baño[q]) #Agregamos si coinciden las horas, ya que, significa que está disponible esa media hora que necesitamos para el baño.
                 q = q+1
 
-        if servSelecc == "corte":
+        if servSelecc == "Corte":
             while q2+5 < len(horasTo_corte):
                 if ((datetime.strptime(horasTo_corte[q2], "%H:%M:%S") + timedelta(minutes=30)).strftime("%H:%M:%S") == horasTo_corte[q2+1]
                 and (datetime.strptime(horasTo_corte[q2], "%H:%M:%S") + timedelta(hours=1)).strftime("%H:%M:%S") == horasTo_corte[q2+2]
@@ -137,7 +141,27 @@ def reserva(request):
                 q2 = q2+1
             
     else:
-        horasD_baño = lista_horas_full
-        horasD_corte = lista_horas_full
+        horasD_baño = lista_horas_full[:17]
+        horasD_corte = lista_horas_full[:13]
 
-    return render(request, "reservas/reserva.html", {"res_x_fecha": res_x_fecha, "fechaD_formateada": fechaD_formateada, "servSelecc": servSelecc, "horasD_baño": horasD_baño, "horasD_corte": horasD_corte})
+    perros_cli = Canino.objects.filter(cliente_id_cliente_id=request.session.get('cliente_id'))
+    
+    if request.GET.get('hora') and request.GET.get('perro'):
+        medio_pago = "Efectivo"
+        valor_res = 0
+        confirm_pago = 0
+        Reserva.objects.create(servicio_res=servSelecc, hora_res=request.GET.get('hora'), fecha_res=fechaDeseada, medio_pago_res=medio_pago, 
+                               valor_res=valor_res, confirm_pago_res=confirm_pago, cliente_id_cliente_id=request.session.get('cliente_id'), canino_id_canino_id=request.GET.get('perro'))
+        return redirect("reserva")
+
+    return render(request, "reservas/reserva.html", {"res_x_fecha": res_x_fecha, "fechaDeseada": fechaDeseada, "fechaD_formateada": fechaD_formateada, "servSelecc": servSelecc, 
+                                                    "horasD_baño": horasD_baño, "horasD_corte": horasD_corte, "perros_cli": perros_cli})
+
+def ver_reservas(request):
+    ver_xfecha=request.GET.get("fecha_reserva")
+    if ver_xfecha:
+        res_xfecha=Reserva.objects.filter(fecha_res=ver_xfecha).order_by('hora_res')
+    else:
+        res_xfecha=Reserva.objects.filter(fecha_res=timezone.localdate()).order_by('hora_res')
+
+    render(request, "reservas/ver_reservas.html", {"res_xfecha":res_xfecha, "ver_xfecha":ver_xfecha})
