@@ -164,4 +164,4 @@ def ver_reservas(request):
     else:
         res_xfecha=Reserva.objects.filter(fecha_res=timezone.localdate()).order_by('hora_res')
 
-    render(request, "reservas/ver_reservas.html", {"res_xfecha":res_xfecha, "ver_xfecha":ver_xfecha})
+    return render(request, "reservas/ver_reservas.html", {"res_xfecha":res_xfecha, "ver_xfecha":ver_xfecha})
