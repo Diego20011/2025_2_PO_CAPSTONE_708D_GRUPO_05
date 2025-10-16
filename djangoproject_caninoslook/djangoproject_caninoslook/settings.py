@@ -79,8 +79,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'caninoslook',
-        'USER': 'adminCanLook',
-        'PASSWORD': os.environ.get("adminCanLook"),
+        'USER': 'root',
+        'PASSWORD': 'caninoslook',
     }
 }
 

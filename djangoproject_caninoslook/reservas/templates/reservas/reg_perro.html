@@ -1,5 +1,55 @@
-<form method="POST">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit" class="btn btn-primary">Guardar</button>
-</form>
+{% extends "reservas/home.html" %}
+{% block title %}Registrar Mascota - CaninosLook{% endblock %}
+
+{% block content %}
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card col-12 col-md-8 col-lg-6 p-4">
+      <h2 class="mb-4">Registrar Mascota</h2>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          {{ form.nombre_can.label_tag }} {{ form.nombre_can }}
+          {% if form.nombre_can.errors %}<div class="text-danger small">{{ form.nombre_can.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.edad_can.label_tag }} {{ form.edad_can }}
+          {% if form.edad_can.errors %}<div class="text-danger small">{{ form.edad_can.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.raza_can.label_tag }} {{ form.raza_can }}
+          {% if form.raza_can.errors %}<div class="text-danger small">{{ form.raza_can.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.peso_can.label_tag }} {{ form.peso_can }}
+          {% if form.peso_can.errors %}<div class="text-danger small">{{ form.peso_can.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.tamano_can.label_tag }} {{ form.tamano_can }}
+          {% if form.tamano_can.errors %}<div class="text-danger small">{{ form.tamano_can.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.cuidados_esp_can.label_tag }} {{ form.cuidados_esp_can }}
+          {% if form.cuidados_esp_can.errors %}<div class="text-danger small">{{ form.cuidados_esp_can.errors }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Guardar</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

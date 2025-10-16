@@ -7,13 +7,13 @@
     <p>Servicio: {{ f.servicio_res }}</p>
     <p>Hora: {{ f.hora_res }}</p>
     <p>Medio de pago: {{ f.medio_pago_res }}</p>
-    <p>Valor: Por definir</p>
+    <p>Valor: {{ f.valor_res }}</p>
     {% if f.confirm_pago_res == 0 %}
         <p>Sin pagar</p>
     {% elif f.confirm_pago_res == 1 %}
         <p>Pagado</p>
     {% endif %}
-    <p>Cliente: {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.nombres_cli }}</p>
+    <p>Cliente: {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}</p>
     <p>Contacto: {{ f.cliente_id_cliente.email_cli}}, {{ f.cliente_id_cliente.numero_cli }}</p>
     <p>Perro: {{ f.canino_id_canino.nombre_can }}</p>
     <br>

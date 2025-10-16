@@ -1,62 +1,67 @@
+{% extends "reservas/home.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="{% static 'reservas/images/logo_caninoslook_zoom.png' %}">
-    <title>C.L - Reserva de hora</title>
-</head>
-<body>
-    <!-- Primero obtenemos los datos que necesitamos para ver la disponibilidad, tipo de servicio y fecha -->
-    <!-- Enviamos el input a la view reserva "{% url 'reserva' %}", el nombre reserva viene del name que esta en urls.py, no viene de view.py. Get para obtener datos.-->
+{% block title %}Reserva de hora - CaninosLook{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="card col-12 col-md-8 col-lg-6 p-4">
+    <h2 class="mb-4">Reserva de hora</h2>
+
     <form method="get" action="{% url 'reserva' %}">
-        <h1>Reserva de hora</h1>
-        <label for="servicio">Selecciona un servicio:</label>
-        <select name="servicio" id="servicio" required>
-        <option value="">-- Selecciona --</option>
-        <option value="Corte">Corte de pelo</option>
-        <option value="Baño">Baño</option>
+      <div class="mb-3">
+        <label for="servicio" class="form-label">Selecciona un servicio:</label>
+        <select name="servicio" id="servicio" class="form-select" required>
+          <option value="">-- Selecciona --</option>
+          <option value="Corte" {% if servSelecc == "Corte" %}selected{% endif %}>Corte de pelo</option>
+          <option value="Baño" {% if servSelecc == "Baño" %}selected{% endif %}>Baño</option>
         </select>
-        <label for="fecha_reserva">Ingrese la fecha de la reserva:</label>
-        <!-- Utilizamos la propiedad onchange para que envíe el formulario al seleccionar la fecha -->
-        <input type="date" name="fecha_reserva" id="fecha_reserva" onchange="this.form.submit()">
+      </div>
+
+      <div class="mb-3">
+        <label for="fecha_reserva" class="form-label">Fecha de la reserva:</label>
+        <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" onchange="this.form.submit()" value="{{ fechaDeseada }}">
+      </div>
     </form>
 
-    {% if servSelecc != None and servSelecc != "" %} <!--Lógica: el usuario va a tener que enviar la fecha si o si, entonces, 
-                                                         solo cuando servSelecc sea distinto a vacío desplegará las horas según el servicio-->
-        <h2>Horas disponibles para "{{ servSelecc }}" el "{{ fechaD_formateada }}"</h2>
-        <form method="get" action="{% url 'reserva' %}">
-            <input type="hidden" name="servicio" value="{{ servSelecc }}">
-            <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
-            {% if servSelecc == "Baño" %}
-                {% for h in horasD_baño %}
-                    <div class="caja-servicios">
-                        <label class="item-servicio">{{ h }}</label>
-                        <input type="radio" name="hora" value="{{ h }}">
-                    </div>
-                {% endfor %}
-            {% elif servSelecc == "Corte" %}
-                {% for h in horasD_corte %}
-                    <div class="caja-servicios">
-                        <label class="item-servicio">{{ h }}</label>
-                        <input type="radio" name="hora" value="{{ h }}">
-                    </div>
-                {% endfor %}
-            {% endif %}
-                    <label for="perro">Perro:</label>
-                    <select id="perro" name="perro" required>
-                        <option value="">Seleccionar perro</option>
-                        {% for p in perros_cli %}
-                            <option value="{{ p.pk }}">{{ p.nombre_can }}</option>
-                        {% endfor %}
-                    </select>
+    {% if servSelecc %}
+      <h5 class="mt-4">Horas disponibles para <strong>{{ servSelecc }}</strong> el <strong>{{ fechaD_formateada }}</strong></h5>
+      <form method="get" action="{% url 'reserva' %}">
+        <input type="hidden" name="servicio" value="{{ servSelecc }}">
+        <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
 
-            <button type="submit">Reservar</button>
-        </form>
-    {% elif fechaD_formateada != "" %} <!--Lógica: si el usuario selecciona solo la fecha, sin seleccionar el servicio-->
-        <h2> Selecciona un servicio y una fecha para ver las horas disponibles.</h2>
+        <div class="mb-3">
+          {% if servSelecc == "Baño" %}
+            {% for h in horasD_baño %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="hora" id="hora_{{ forloop.counter }}" value="{{ h }}">
+                <label class="form-check-label" for="hora_{{ forloop.counter }}">{{ h }}</label>
+              </div>
+            {% endfor %}
+          {% elif servSelecc == "Corte" %}
+            {% for h in horasD_corte %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="hora" id="hora_{{ forloop.counter }}" value="{{ h }}">
+                <label class="form-check-label" for="hora_{{ forloop.counter }}">{{ h }}</label>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="perro" class="form-label">Selecciona tu perro:</label>
+          <select id="perro" name="perro" class="form-select" required>
+            <option value="">Seleccionar perro</option>
+            {% for p in perros_cli %}
+              <option value="{{ p.pk }}">{{ p.nombre_can }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Reservar</button>
+      </form>
+    {% elif fechaD_formateada %}
+      <div class="alert alert-info mt-4">Selecciona un servicio y una fecha para ver las horas disponibles.</div>
     {% endif %}
-
-</body>
-</html>
+  </div>
+</div>
+{% endblock %}

@@ -44,6 +44,8 @@ def registrar_canino(request):
     return render(request, 'reservas/reg_perro.html', {'form': form})
 
 def home(request):
+    if not request.session.get("cliente_id"):
+        return redirect("login_cliente")
     return render(request, "reservas/home.html")
 
 
@@ -152,7 +154,7 @@ def reserva(request):
         confirm_pago = 0
         Reserva.objects.create(servicio_res=servSelecc, hora_res=request.GET.get('hora'), fecha_res=fechaDeseada, medio_pago_res=medio_pago, 
                                valor_res=valor_res, confirm_pago_res=confirm_pago, cliente_id_cliente_id=request.session.get('cliente_id'), canino_id_canino_id=request.GET.get('perro'))
-        return redirect("reserva")
+        return redirect("ver_reservas")
 
     return render(request, "reservas/reserva.html", {"res_x_fecha": res_x_fecha, "fechaDeseada": fechaDeseada, "fechaD_formateada": fechaD_formateada, "servSelecc": servSelecc, 
                                                     "horasD_baño": horasD_baño, "horasD_corte": horasD_corte, "perros_cli": perros_cli})
@@ -165,3 +167,10 @@ def ver_reservas(request):
         res_xfecha=Reserva.objects.filter(fecha_res=timezone.localdate()).order_by('hora_res')
 
     return render(request, "reservas/ver_reservas.html", {"res_xfecha":res_xfecha, "ver_xfecha":ver_xfecha})
+
+
+def logout_cliente(request):
+    # Elimina toda la sesión del cliente
+    request.session.flush()
+    messages.success(request, "Has cerrado sesión correctamente.")
+    return redirect("login")
