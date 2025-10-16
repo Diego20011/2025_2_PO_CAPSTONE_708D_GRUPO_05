@@ -133,10 +133,22 @@ def reserva(request):
 
 # Ver reservas
 def ver_reservas(request):
+    cliente_id = request.session.get("cliente_id")
+    if not cliente_id:
+        return redirect("login")
+
     ver_xfecha = request.GET.get("fecha_reserva")
     fecha = ver_xfecha or timezone.localdate()
-    res_xfecha = Reserva.objects.filter(fecha_res=fecha).order_by("hora_res")
-    return render(request, "reservas/ver_reservas.html", {"res_xfecha": res_xfecha, "ver_xfecha": ver_xfecha})
+
+    res_xfecha = Reserva.objects.filter(
+        fecha_res=fecha,
+        cliente_id_cliente_id=cliente_id
+    ).order_by("hora_res")
+
+    return render(request, "reservas/ver_reservas.html", {
+        "res_xfecha": res_xfecha,
+        "ver_xfecha": ver_xfecha
+    })
 
 
 # Logout
