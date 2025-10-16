@@ -1,0 +1,20 @@
+{% extends "reservas/base.html" %}
+{% block title %}Bienvenido - CaninosLook{% endblock %}
+
+{% block content %}
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card col-12 col-md-8 col-lg-6 p-4 text-center">
+      <h2 class="mb-4">Bienvenido a CaninosLook</h2>
+      <p class="mb-3">Tu peluquería canina de confianza. Regístrate para agendar una hora, registrar a tu mascota y acceder a todos nuestros servicios.</p>
+
+      <div class="d-grid gap-3">
+        <a href="{% url 'registro' %}" class="btn btn-outline-primary">Crear cuenta</a>
+        <a href="{% url 'login' %}" class="btn btn-outline-success">Iniciar sesión</a>
+      </div>
+
+      <hr class="my-4">
+
+      <p class="small text-muted">¿Ya tienes una cuenta? Inicia sesión para continuar.</p>
+    </div>
+  </div>
+{% endblock %}

@@ -1,60 +1,83 @@
+/* === Estilo general === */
 body {
-    background: linear-gradient(135deg, #FFDAB9, #FFF3E0);
-    min-height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #FFDAB9, #FFF3E0);
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Navbar */
+/* === Navbar === */
 .navbar {
-    background-color: #FF6F61 !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  background-color: #FF6F61 !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-brand {
-    font-weight: bold;
-    font-size: 1.3rem;
+  font-weight: bold;
+  font-size: 1.3rem;
 }
 
-/* Card del formulario */
+/* === Tarjetas (formularios, vistas) === */
 .card {
-    background-color: #FFE0B2;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    transition: transform 0.3s ease;
+  background-color: #FFE0B2;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+  transform: translateY(-5px);
 }
 
-/* Botón */
+/* === Botones === */
 .btn-primary {
-    background-color: #FF8C42;
-    border-color: #FF8C42;
-    font-weight: bold;
+  background-color: #FF8C42;
+  border-color: #FF8C42;
+  font-weight: bold;
 }
 
 .btn-primary:hover {
-    background-color: #FF7B1D;
-    border-color: #FF7B1D;
+  background-color: #FF7B1D;
+  border-color: #FF7B1D;
 }
 
+/* === Títulos === */
 h2 {
-    color: #6D4C41;
-    font-weight: 600;
-    text-align: center;
+  color: #6D4C41;
+  font-weight: 600;
+  text-align: center;
 }
 
-/* Alertas */
+/* === Alertas === */
 .alert {
-    font-weight: 500;
-    border-radius: 12px;
+  font-weight: 500;
+  border-radius: 12px;
 }
 
-/* Formulario responsive */
+/* === Etiquetas y campos === */
+label {
+  font-weight: 500;
+  color: #5D4037;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  border-radius: 10px;
+}
+
+/* === Radios y checks === */
+.form-check-input {
+  accent-color: #FF8C42;
+}
+
+/* === Responsive === */
 @media (max-width: 576px) {
-    .card {
-        padding: 1.5rem;
-    }
+  .card {
+    padding: 1.5rem;
+  }
 }

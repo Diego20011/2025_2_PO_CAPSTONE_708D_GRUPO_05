@@ -1,21 +1,38 @@
-<form method="get" action="{% url 'ver_reservas' %}">
-    <label for="fecha_reserva">Ver reservas para:</label>
-    <!-- Utilizamos la propiedad onchange para que envíe el formulario al seleccionar la fecha -->
-    <input type="date" name="fecha_reserva" id="fecha_reserva" onchange="this.form.submit()">
-</form>
-{% for f in res_xfecha %}
-    <p>Servicio: {{ f.servicio_res }}</p>
-    <p>Hora: {{ f.hora_res }}</p>
-    <p>Medio de pago: {{ f.medio_pago_res }}</p>
-    <p>Valor: {{ f.valor_res }}</p>
-    {% if f.confirm_pago_res == 0 %}
-        <p>Sin pagar</p>
-    {% elif f.confirm_pago_res == 1 %}
-        <p>Pagado</p>
-    {% endif %}
-    <p>Cliente: {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}</p>
-    <p>Contacto: {{ f.cliente_id_cliente.email_cli}}, {{ f.cliente_id_cliente.numero_cli }}</p>
-    <p>Perro: {{ f.canino_id_canino.nombre_can }}</p>
-    <br>
-{% endfor %}
-<!--Que pueda ver las reservas para hoy y para otra fecha-->
+{% extends "reservas/base.html" %}
+{% block title %}Ver Reservas - CaninosLook{% endblock %}
+
+{% block content %}
+  <div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
+    <div class="card col-12 col-md-10 col-lg-8 p-4">
+      <h2 class="mb-4 text-center">Reservas</h2>
+
+      <form method="get" action="{% url 'ver_reservas' %}" class="mb-4">
+        <label for="fecha_reserva" class="form-label">Ver reservas para:</label>
+        <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" onchange="this.form.submit()" value="{{ ver_xfecha }}">
+      </form>
+
+      {% if res_xfecha %}
+        {% for f in res_xfecha %}
+          <div class="border rounded p-3 mb-3 bg-light">
+            <p><strong>Servicio:</strong> {{ f.servicio_res }}</p>
+            <p><strong>Hora:</strong> {{ f.hora_res }}</p>
+            <p><strong>Medio de pago:</strong> {{ f.medio_pago_res }}</p>
+            <p><strong>Valor:</strong> ${{ f.valor_res }}</p>
+            <p><strong>Estado de pago:</strong>
+              {% if f.confirm_pago_res == 0 %}
+                <span class="text-danger">Sin pagar</span>
+              {% elif f.confirm_pago_res == 1 %}
+                <span class="text-success">Pagado</span>
+              {% endif %}
+            </p>
+            <p><strong>Cliente:</strong> {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}</p>
+            <p><strong>Contacto:</strong> {{ f.cliente_id_cliente.email_cli }}, {{ f.cliente_id_cliente.numero_cli }}</p>
+            <p><strong>Perro:</strong> {{ f.canino_id_canino.nombre_can }}</p>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-info">No hay reservas para esta fecha.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
