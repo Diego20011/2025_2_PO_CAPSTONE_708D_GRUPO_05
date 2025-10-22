@@ -17,51 +17,53 @@
 
       <form method="post">
         {% csrf_token %}
-
+        <!--NOMBRE/S Y APELLIDO/S-->
         <div class="row">
           <div class="col-md-6 mb-3">
             {{ form.nombres_cli.label_tag }} {{ form.nombres_cli }}
             {% if form.nombres_cli.errors %}
+              <div class="text-danger small" style="list-style: none; padding-left: 15px;">Nombre/s debe tener:</div>
               <div class="text-danger small">{{ form.nombres_cli.errors }}</div>
             {% endif %}
           </div>
           <div class="col-md-6 mb-3">
             {{ form.apellidos_cli.label_tag }} {{ form.apellidos_cli }}
             {% if form.apellidos_cli.errors %}
+              <div class="text-danger small" style="list-style: none; padding-left: 15px;">Apellido/s debe tener:</div>
               <div class="text-danger small">{{ form.apellidos_cli.errors }}</div>
             {% endif %}
           </div>
         </div>
-
+        <!--EMAIL-->
         <div class="mb-3">
           {{ form.email_cli.label_tag }} {{ form.email_cli }}
           {% if form.email_cli.errors %}
             <div class="text-danger small">{{ form.email_cli.errors }}</div>
           {% endif %}
         </div>
-
+        <!--NUMERO-->
         <div class="mb-3">
-          {{ form.numero_cli.label_tag }} {{ form.numero_cli }}
+          {{ form.numero_cli.label_tag }}
+          <div class="input-group"> <!--input-group es un contenedor de Bootstrap para unir inputs con textos, botones o íconos al inicio o al final.-->
+            <span class="input-group-text">+569</span> <!--input-group-text define contenido que se muestra dentro del input, generalmente como prefijo o sufijo.-->
+            <!--Usamos <span> aquí porque:
+              Es un elemento inline, así que no rompe la línea y queda alineado con el input.
+              Bootstrap lo recomienda para la clase input-group-text, asegurando que el estilo y la alineación funcionen correctamente.-->
+            {{ form.numero_cli }}
+          </div>
           {% if form.numero_cli.errors %}
             <div class="text-danger small">{{ form.numero_cli.errors }}</div>
           {% endif %}
         </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            {{ form.password1.label_tag }} {{ form.password1 }}
-            {% if form.password1.errors %}
-              <div class="text-danger small">{{ form.password1.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="col-md-6 mb-3">
-            {{ form.password2.label_tag }} {{ form.password2 }}
-            {% if form.password2.errors %}
-              <div class="text-danger small">{{ form.password2.errors }}</div>
-            {% endif %}
-          </div>
+        <!--CONTRASEÑA-->
+        <div class="mb-3">
+          {{ form.password.label_tag }} {{ form.password }}
+          {% if form.password.errors %}
+            <div class="text-danger small" style="list-style: none; padding-left: 15px;">Contraseña debe tener:</div>
+            <div class="text-danger small">{{ form.password.errors }}</div>
+          {% endif %}
         </div>
-
+        <!--BOTÓN PARA ENVIAR FORMULARIO-->
         <button type="submit" class="btn btn-primary w-100">Registrar</button>
       </form>
     </div>

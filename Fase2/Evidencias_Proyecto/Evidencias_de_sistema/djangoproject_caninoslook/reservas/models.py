@@ -1,13 +1,15 @@
 from django.db import models
 
+#En los modelos solo puedes usar cosas como max_length, blank, null, unique, default (Define un valor por defecto para el campo si no se proporciona uno al crear el objeto.) 
+#y validators (Permite agregar reglas de validación extra que Django ejecuta al guardar el objeto o validar el formulario, ej: validators=[MinLengthValidator(3)]).
 
 class Cliente(models.Model):
     id_cliente = models.AutoField(primary_key=True)
-    nombres_cli = models.CharField("Nombres", max_length=30)
-    apellidos_cli = models.CharField("Apellidos", max_length=30)
-    email_cli = models.EmailField("Correo electrónico", max_length=70, unique=True)
-    numero_cli = models.PositiveIntegerField("Número de contacto")
-    password = models.CharField("Contraseña", max_length=128)
+    nombres_cli = models.CharField("Nombre/s", max_length=30, blank=False)
+    apellidos_cli = models.CharField("Apellido/s", max_length=30, blank=False)
+    email_cli = models.EmailField("Correo electrónico", max_length=70, unique=True, blank=False)
+    numero_cli = models.CharField("Número de contacto", blank=False, max_length=12)
+    password = models.CharField("Contraseña", max_length=128, blank=False)
 
     class Meta:
         db_table = 'cliente'
@@ -21,7 +23,7 @@ class Cliente(models.Model):
 class Canino(models.Model):
     id_canino = models.AutoField(primary_key=True)
     nombre_can = models.CharField("Nombre", max_length=20)
-    edad_can = models.PositiveIntegerField("Edad")
+    fecha_nac_can = models.DateField("Fecha de nacimiento")
     raza_can = models.CharField("Raza", max_length=15)
     peso_can = models.PositiveIntegerField("Peso (kg)")
     tamano_can = models.CharField("Tamaño", max_length=10)

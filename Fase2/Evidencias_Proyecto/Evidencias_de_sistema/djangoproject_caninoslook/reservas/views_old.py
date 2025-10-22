@@ -1,10 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.hashers import make_password #Librería que encripta texto.
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .forms import RegistroDeClienteForm, CaninoForm
+from .forms import RegistroDeClienteForm#, CaninoForm
 from .models import Cliente, Reserva, Canino
 
 
@@ -13,13 +12,32 @@ def registrar_cliente(request):
     form = RegistroDeClienteForm(request.POST or None)
     if request.method == "POST":
         if form.is_valid():
-            cliente = form.save(commit=False)
-            cliente.password = make_password(form.cleaned_data["password"])
             form.save()
             messages.success(request, "¡Cuenta creada con éxito! ✅")
-            return redirect('registro')
-
+            return redirect("login")
+        else:
+            for field in ['email_cli', 'numero_cli']:
+                if form.errors.get(field):
+                    messages.error(request, form.errors[field][0])
     return render(request, "reservas/registro.html", {"form": form})
+
+
+# Registro de canino
+def registrar_canino(request):
+    form = CaninoForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        canino = form.save(commit=False)
+        canino.cliente_id_cliente_id = request.session.get('cliente_id')
+        canino.save()
+        return redirect("reserva")
+    return render(request, "reservas/reg_perro.html", {"form": form})
+
+
+def home(request):
+    if not request.session.get("cliente_id"):
+        return render(request, "reservas/home_no_registrado.html")
+    return render(request, "reservas/home.html")
+
 
 
 # Login de cliente
@@ -42,23 +60,6 @@ def login_cliente(request):
         else:
             messages.error(request, "Contraseña incorrecta.")
     return render(request, "reservas/login.html")
-
-
-# Registro de canino
-def registrar_canino(request):
-    form = CaninoForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        canino = form.save(commit=False)
-        canino.cliente_id_cliente_id = request.session.get('cliente_id')
-        canino.save()
-        return redirect("reserva")
-    return render(request, "reservas/reg_perro.html", {"form": form})
-
-
-def home(request):
-    if not request.session.get("cliente_id"):
-        return render(request, "reservas/home_no_registrado.html")
-    return render(request, "reservas/home.html")
 
 
 # Reserva de hora
