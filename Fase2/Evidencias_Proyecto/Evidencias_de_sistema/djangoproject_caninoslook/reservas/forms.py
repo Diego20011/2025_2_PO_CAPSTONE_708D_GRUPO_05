@@ -2,6 +2,7 @@ from django import forms
 from .models import Cliente, Canino
 from django.core.exceptions import ValidationError #Crea excepciones y muestra mensajes en el template html.
 import re #Librería estándar de Python (viene instalada por defecto) que te permite buscar, comparar o validar patrones de texto usando expresiones regulares (regex).
+from django.utils import timezone #Para manejar horas y fechas mediante TIME_ZONE de settings.py
 
 
 #| Tipo          | Clase base        | Cuándo se usa                                                   | Relación con el modelo            |
@@ -53,7 +54,7 @@ class RegistroDeClienteForm(forms.ModelForm):
                 "blank": "Nombre/s debe contener al menos un nombre o su apodo."},
             "apellidos_cli":{
                 "max_length": "Apellido/s debe tener menos de 30 caracteres.",
-                "blank": "Apellido/s debe contener al menos un apellido."}}
+                "blank": "Apellido/s debe contener al menos un apellido."}} #FALTA COMPLETAR
 
     #Explicando cleaned_data:
     #Primero, usa lo definido en models.py, Django revisa que los datos enviados cumplan las validaciones básicas del campo, es decir:
@@ -89,7 +90,7 @@ class RegistroDeClienteForm(forms.ModelForm):
             #Solo letras permitidas y 1 espacio entre palabras.
             #Mínimo 3 caracteres en total.
             raise ValidationError(["3-30 caracteres.",
-                                  "Solo letras.",
+                                  "Solo se permiten letras letras.",
                                   "Solo un espacio entre palabras"])
             #raise se usa para lanzar una excepción (frena el código). Luego se ocupa en el html como mensaje de error, sin antes definir en views.py.
             #Django lo quita del diccionario cleaned_data porque el campo no es válido.
@@ -99,7 +100,7 @@ class RegistroDeClienteForm(forms.ModelForm):
         apellido = self.cleaned_data.get('apellidos_cli').strip() # strip le quita espacios al inicio y al final.
         if not re.match("^(?=.{3,}$)[A-Za-zÁÉÍÓÚáéíóúÑñ]+( [A-Za-zÁÉÍÓÚáéíóúÑñ]+)*$", apellido):
             raise ValidationError(["3-30 caracteres.",
-                                  "Solo letras.",
+                                  "Solo se permiten letras letras.",
                                   "Solo un espacio entre palabras"])
         return apellido
 
@@ -123,7 +124,7 @@ class RegistroDeClienteForm(forms.ModelForm):
     def clean_password(self):
         password = self.cleaned_data.get('password')
         if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"[a-z]", password) or not re.search(r"[0-9]", password):
-            raise ValidationError(["Mínimo 8 caracteres.",
+            raise ValidationError(["8 o + caracteres.",
                                     "1 mayúscula.",
                                     "1 minúscula.",
                                     "1 número."])
@@ -140,13 +141,75 @@ class CaninoForm(forms.ModelForm):
             "raza_can": "Raza",
             "peso_can": "Peso (kg)",
             "tamano_can": "Tamaño",
-            "cuidados_esp_can": "Cuidados especiales",
-        }
+            "cuidados_esp_can": "Cuidados especiales",}
         widgets = {
-            "nombre_can": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre del perro"}),
-            "fecha_nac_can": forms.DateInput(attrs={"class": "form-control", "placeholder": "Fecha de nacimiento"}),
-            "raza_can": forms.TextInput(attrs={"class": "form-control", "placeholder": "Raza"}),
-            "peso_can": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Peso en kg"}),
-            "tamano_can": forms.TextInput(attrs={"class": "form-control", "placeholder": "Pequeño, mediano, grande"}),
-            "cuidados_esp_can": forms.Textarea(attrs={"class": "form-control", "placeholder": "Indica cuidados especiales", "rows": 3}),
-        }
+            "nombre_can": forms.TextInput(attrs={"class": "form-control", 
+                                                 "placeholder": "Nombre del perro"}),
+
+            "fecha_nac_can": forms.DateInput(attrs={"class": "form-control", 
+                                                    "placeholder": "Fecha de nacimiento"}),
+
+            "raza_can": forms.TextInput(attrs={"class": "form-control", 
+                                               "placeholder": "Raza"}),
+
+            "peso_can": forms.NumberInput(attrs={"class": "form-control", 
+                                                 "placeholder": "Peso en kg"}),
+
+            "tamano_can": forms.TextInput(attrs={"class": "form-control", 
+                                                 "placeholder": "Pequeño, mediano, grande"}),
+
+            "cuidados_esp_can": forms.Textarea(attrs={"class": "form-control", 
+                                                      "placeholder": "Indica cuidados especiales", "rows": 3}),}
+    
+    def clean_nombre_can(self):
+        nombre = self.cleaned_data.get('nombre_can')
+        if not re.match("^[A-Za-zÁÉÍÓÚáéíóúÑñ]+( [A-Za-zÁÉÍÓÚáéíóúÑñ]+)*$", nombre):
+            raise ValidationError(["No pueden haber más de 2 espacios seguidos.",
+                                   "Solo se permiten letras."])
+        if len(nombre) > 20:
+            raise ValidationError("Solo son permitidos 20 caracteres.")
+        return nombre
+
+    def clean_fecha_nac_can(self):
+        fecha_nac = self.cleaned_data.get('fecha_nac_can')
+        hoy = timezone.localdate() #fecha de hoy.
+        if fecha_nac > hoy:
+            raise ValidationError("No puede registrar un perro que todavía no nace.")
+        edad = hoy.year - fecha_nac.year - ((hoy.month, hoy.day) < (fecha_nac.month, fecha_nac.day))
+        if edad > 25:
+            raise ValidationError("El perro no puede tener más de 25 años.")
+        #if fecha_nac > hoy:
+        #    raise ValidationError("No puede registrar un perro menor que 6 meses.")
+        #CONSULTAR VALIDACIONES DE MÍNIMO 6 MESES DE VIDA. POR VACUNAS.
+        return fecha_nac
+    
+    def clean_raza_can(self):
+        raza = self.cleaned_data.get('raza_can')
+        if not re.match("^[A-Za-zÁÉÍÓÚáéíóúÑñ]+( [A-Za-zÁÉÍÓÚáéíóúÑñ]+)*$", raza):
+            raise ValidationError(["No pueden haber más de 2 espacios seguidos.",
+                                   "Solo se permiten letras."])
+        if len(raza) > 15:
+            raise ValidationError("Solo son permitidos 15 caracteres.")
+        return raza
+
+    def clean_peso_can(self):
+        peso = self.cleaned_data.get('peso_can')
+        if not re.match("^[0-9]{1,2}$", peso): #{1,2} = 1 o 2 digitos, ^[0-9][0-9]$ = exactamente 2 dígitos (no puede ser 1 digito (5)).
+            raise ValidationError(["Solo son permitidos números, hasta 2 digitos."])
+        #CONSULTAR VALIDACIONES DE PESOS MÁX
+        return peso
+
+    def clean_tamano_can(self):
+        tamaño = self.cleaned_data.get('tamano_can')
+        if tamaño != "Mediano" or tamaño != "Pequeño" or tamaño != "Grande": #La dueña va a poder editar esto por si piensan que su perro es pequeño cuando es mediano.
+            raise ValidationError("Escoge la categoría que crees que le correspone a tu perro. Luego será corregida")
+        return tamaño
+
+    def clean_cuidados_esp_can(self):
+        cuida_esp = self.cleaned_data.get('cuidados_esp_can')
+        if not re.match("^[0-9A-Za-zÁÉÍÓÚáéíóúÑñ \t\n¡!¿?-.]*$", cuida_esp): #alfinal de la cadena: * = cero o más caracteres, + = 1 o más caracteres.
+            raise ValidationError(["Caracteres permitidos:",
+                                   "0-9, Aa-Zz, ?¿, ¡!, -, ."])
+        if len(cuida_esp) > 1000:
+            raise ValidationError("Excediste el número máximo de caracteres. (1000)")
+        return cuida_esp

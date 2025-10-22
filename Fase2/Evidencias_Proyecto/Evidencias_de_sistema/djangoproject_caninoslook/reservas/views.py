@@ -15,7 +15,7 @@ def registrar_cliente(request):
         if form.is_valid():
             cliente = form.save(commit=False)
             cliente.password = make_password(form.cleaned_data["password"])
-            form.save()
+            cliente.save()
             messages.success(request, "¡Cuenta creada con éxito! ✅")
             return redirect('registro')
 
