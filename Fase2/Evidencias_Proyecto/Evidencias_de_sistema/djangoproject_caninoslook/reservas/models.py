@@ -21,12 +21,15 @@ class Cliente(models.Model):
 
 
 class Canino(models.Model):
+    #Definimos las opciones para raza.
+    tamaño_choices = [("", "Seleccione tamaño"), ("Pequeño", "Pequeño"), ("Mediano", "Mediano"), ("Grande", "Grande")]
+
     id_canino = models.AutoField(primary_key=True)
     nombre_can = models.CharField("Nombre", max_length=20)
     fecha_nac_can = models.DateField("Fecha de nacimiento")
     raza_can = models.CharField("Raza", max_length=15)
     peso_can = models.PositiveIntegerField("Peso (kg)")
-    tamano_can = models.CharField("Tamaño", max_length=10)
+    tamano_can = models.CharField("Tamaño", max_length=10, choices=tamaño_choices)
     cuidados_esp_can = models.TextField("Cuidados especiales", blank=True, null=True)
     cliente_id_cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, db_column='cliente_id_cliente', related_name='caninos')
 

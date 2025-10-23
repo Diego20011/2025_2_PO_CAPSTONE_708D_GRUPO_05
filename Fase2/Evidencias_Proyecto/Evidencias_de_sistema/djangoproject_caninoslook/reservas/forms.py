@@ -131,13 +131,13 @@ class RegistroDeClienteForm(forms.ModelForm):
         return password
 
 
-class CaninoForm(forms.ModelForm):
+class RegistroDeCaninoForm(forms.ModelForm):
     class Meta:
         model = Canino
         fields = ["nombre_can", "fecha_nac_can", "raza_can", "peso_can", "tamano_can", "cuidados_esp_can"]
         labels = {
             "nombre_can": "Nombre",
-            "fecha_nac_can": "Fecha de nacimiento, nos puede tirar error, hay que arreglar html",
+            "fecha_nac_can": "Fecha de nacimiento",
             "raza_can": "Raza",
             "peso_can": "Peso (kg)",
             "tamano_can": "Tamaño",
@@ -147,19 +147,19 @@ class CaninoForm(forms.ModelForm):
                                                  "placeholder": "Nombre del perro"}),
 
             "fecha_nac_can": forms.DateInput(attrs={"class": "form-control", 
-                                                    "placeholder": "Fecha de nacimiento"}),
+                                                    "placeholder": "Fecha de nacimiento",
+                                                    "type": "date"}),
 
             "raza_can": forms.TextInput(attrs={"class": "form-control", 
-                                               "placeholder": "Raza"}),
+                                               "placeholder": "Escriba aquí la raza"}),
 
             "peso_can": forms.NumberInput(attrs={"class": "form-control", 
                                                  "placeholder": "Peso en kg"}),
 
-            "tamano_can": forms.TextInput(attrs={"class": "form-control", 
-                                                 "placeholder": "Pequeño, mediano, grande"}),
+            "tamano_can": forms.Select(attrs={"class": "form-select"}),
 
             "cuidados_esp_can": forms.Textarea(attrs={"class": "form-control", 
-                                                      "placeholder": "Indica cuidados especiales", "rows": 3}),}
+                                                      "placeholder": "Indica cuidados especiales si corresponde", "rows": 3}),}
     
     def clean_nombre_can(self):
         nombre = self.cleaned_data.get('nombre_can')
@@ -194,22 +194,23 @@ class CaninoForm(forms.ModelForm):
 
     def clean_peso_can(self):
         peso = self.cleaned_data.get('peso_can')
-        if not re.match("^[0-9]{1,2}$", peso): #{1,2} = 1 o 2 digitos, ^[0-9][0-9]$ = exactamente 2 dígitos (no puede ser 1 digito (5)).
+        if not re.match("^[0-9]{1,2}$", str(peso)): #{1,2} = 1 o 2 digitos, ^[0-9][0-9]$ = exactamente 2 dígitos (no puede ser 1 digito (5)).
             raise ValidationError(["Solo son permitidos números, hasta 2 digitos."])
         #CONSULTAR VALIDACIONES DE PESOS MÁX
         return peso
 
     def clean_tamano_can(self):
         tamaño = self.cleaned_data.get('tamano_can')
-        if tamaño != "Mediano" or tamaño != "Pequeño" or tamaño != "Grande": #La dueña va a poder editar esto por si piensan que su perro es pequeño cuando es mediano.
+        if tamaño not in ["Pequeño", "Mediano", "Grande"]: #La dueña va a poder editar esto por si piensan que su perro es pequeño cuando es mediano.
             raise ValidationError("Escoge la categoría que crees que le correspone a tu perro. Luego será corregida")
         return tamaño
 
     def clean_cuidados_esp_can(self):
         cuida_esp = self.cleaned_data.get('cuidados_esp_can')
-        if not re.match("^[0-9A-Za-zÁÉÍÓÚáéíóúÑñ \t\n¡!¿?-.]*$", cuida_esp): #alfinal de la cadena: * = cero o más caracteres, + = 1 o más caracteres.
+        if not re.match("^[0-9A-Za-zÁÉÍÓÚáéíóúÑñ \t\n¡!¿?.-]*$", cuida_esp): #alfinal de la cadena: * = cero o más caracteres, + = 1 o más caracteres.
             raise ValidationError(["Caracteres permitidos:",
                                    "0-9, Aa-Zz, ?¿, ¡!, -, ."])
         if len(cuida_esp) > 1000:
             raise ValidationError("Excediste el número máximo de caracteres. (1000)")
+        #AQUI HAY QUE HACER CONCATENACIÓN, POR SI YA TENÍA ALGÚN CUIDADO ESP Y LE SALIO UNO NUEVO.
         return cuida_esp

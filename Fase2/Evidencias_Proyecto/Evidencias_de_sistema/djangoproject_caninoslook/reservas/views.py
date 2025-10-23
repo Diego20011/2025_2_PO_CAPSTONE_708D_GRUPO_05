@@ -4,7 +4,7 @@ from django.contrib.auth.hashers import make_password #Librería que encripta te
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .forms import RegistroDeClienteForm, CaninoForm
+from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
 
 
@@ -46,7 +46,7 @@ def login_cliente(request):
 
 # Registro de canino
 def registrar_canino(request):
-    form = CaninoForm(request.POST or None)
+    form = RegistroDeCaninoForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         canino = form.save(commit=False)
         canino.cliente_id_cliente_id = request.session.get('cliente_id')
@@ -56,9 +56,15 @@ def registrar_canino(request):
 
 
 def home(request):
-    if not request.session.get("cliente_id"):
-        return render(request, "reservas/home_no_registrado.html")
-    return render(request, "reservas/home.html")
+    cliente_id = request.session.get("cliente_id")
+    if not cliente_id:
+        return redirect("login")
+
+    reservas = Reserva.objects.filter(fecha_res__gte=timezone.localdate()).order_by("fecha_res") #__gte = “greater than or equal” → solo fechas hoy o futuras.
+
+    return render(request, "reservas/home.html", {
+        "reservas": reservas,
+    })
 
 
 # Reserva de hora

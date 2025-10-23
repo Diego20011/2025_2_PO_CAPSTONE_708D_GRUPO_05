@@ -17,15 +17,48 @@
 
       <form method="POST">
         {% csrf_token %}
-
-        {% for field in form %}
-          <div class="mb-3">
-            {{ field.label_tag }} {{ field }}
-            {% if field.errors %}
-              <div class="text-danger small">{{ field.errors }}</div>
-            {% endif %}
-          </div>
-        {% endfor %}
+        <!--NOMBRE PERRO-->
+        <div class="mb-3">
+          {{ form.nombre_can.label_tag }} {{ form.nombre_can }}
+          {% if form.nombre_can.errors %}
+            <div class="text-danger small">{{ form.nombre_can.errors }}</div>
+          {% endif %}
+        </div>
+        <!--FECHA DE NACIMIENTO-->
+        <div class="mb-3">
+          {{ form.fecha_nac_can.label_tag }} {{ form.fecha_nac_can }}
+          {% if form.fecha_nac_can.errors %}
+            <div class="text-danger small">{{ form.fecha_nac_can.errors }}</div>
+          {% endif %}
+        </div>
+        <!--RAZA-->
+        <div class="mb-3">
+          {{ form.raza_can.label_tag }} {{ form.raza_can }}
+          {% if form.raza_can.errors %}
+            <div class="text-danger small">{{ form.raza_can.errors }}</div>
+          {% endif %}
+        </div>
+        <!--PESO-->
+        <div class="mb-3">
+          {{ form.peso_can.label_tag }} {{ form.peso_can }}
+          {% if form.peso_can.errors %}
+            <div class="text-danger small">{{ form.peso_can.errors }}</div>
+          {% endif %}
+        </div>
+        <!--TAMAÑO-->
+        <div class="mb-3">
+          {{ form.tamano_can.label_tag }} {{ form.tamano_can }}
+          {% if form.tamano_can.errors %}
+            <div class="text-danger small">{{ form.tamano_can.errors }}</div>
+          {% endif %}
+        </div>
+        <!--CUIDADOS ESPECIALES-->
+        <div class="mb-3">
+          {{ form.cuidados_esp_can.label_tag }} {{ form.cuidados_esp_can }}
+          {% if form.cuidados_esp_can.errors %}
+            <div class="text-danger small">{{ form.cuidados_esp_can.errors }}</div>
+          {% endif %}
+        </div>
 
         <button type="submit" class="btn btn-primary w-100">Guardar</button>
       </form>
