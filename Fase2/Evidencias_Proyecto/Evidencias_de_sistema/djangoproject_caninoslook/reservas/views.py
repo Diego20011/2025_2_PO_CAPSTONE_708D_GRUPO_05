@@ -1,12 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.hashers import make_password #Librería que encripta texto.
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
-
 
 # Registro de cliente
 def registrar_cliente(request):
@@ -17,13 +15,13 @@ def registrar_cliente(request):
             cliente.password = make_password(form.cleaned_data["password"])
             cliente.save()
             messages.success(request, "¡Cuenta creada con éxito! ✅")
-            return redirect('registro')
-
+            return redirect("login")
     return render(request, "reservas/registro.html", {"form": form})
-
 
 # Login de cliente
 def login_cliente(request):
+    if request.session.get("cliente_id"):
+        return redirect("home")
     if request.method == "POST":
         ident = (request.POST.get("user_or_email") or "").strip()
         password = request.POST.get("password") or ""
@@ -43,7 +41,6 @@ def login_cliente(request):
             messages.error(request, "Contraseña incorrecta.")
     return render(request, "reservas/login.html")
 
-
 # Registro de canino
 def registrar_canino(request):
     form = RegistroDeCaninoForm(request.POST or None)
@@ -51,24 +48,36 @@ def registrar_canino(request):
         canino = form.save(commit=False)
         canino.cliente_id_cliente_id = request.session.get('cliente_id')
         canino.save()
+        messages.success(request, "Mascota registrada correctamente.")
         return redirect("reserva")
     return render(request, "reservas/reg_perro.html", {"form": form})
 
-
+# Home
 def home(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
-        return redirect("login")
+        return render(request, "reservas/home_no_registrado.html")
 
-    reservas = Reserva.objects.filter(fecha_res__gte=timezone.localdate()).order_by("fecha_res") #__gte = “greater than or equal” → solo fechas hoy o futuras.
+    reservas = Reserva.objects.filter(
+        cliente_id_cliente_id=cliente_id,
+        fecha_res__gte=timezone.localdate()
+    ).order_by("fecha_res")
 
     return render(request, "reservas/home.html", {
         "reservas": reservas,
     })
 
-
 # Reserva de hora
 def reserva(request):
+    cliente_id = request.session.get("cliente_id")
+    if not cliente_id:
+        return redirect("login")
+
+    perros_cli = Canino.objects.filter(cliente_id_cliente_id=cliente_id)
+    if not perros_cli.exists():
+        messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
+        return redirect("registrar_perro")
+
     servSelecc = request.GET.get("servicio")
     fechaDeseada = request.GET.get("fecha_reserva")
     fechaD_formateada = "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else ""
@@ -109,19 +118,19 @@ def reserva(request):
         horasD_baño = lista_horas_full[:17]
         horasD_corte = lista_horas_full[:13]
 
-    perros_cli = Canino.objects.filter(cliente_id_cliente_id=request.session.get("cliente_id"))
-
     if request.GET.get("hora") and request.GET.get("perro"):
-        Reserva.objects.create(
+        reserva_nueva = Reserva.objects.create(
             servicio_res=servSelecc,
             hora_res=request.GET.get("hora"),
             fecha_res=fechaDeseada,
             medio_pago_res="Efectivo",
             valor_res=0,
             confirm_pago_res=0,
-            cliente_id_cliente_id=request.session.get("cliente_id"),
+            cliente_id_cliente_id=cliente_id,
             canino_id_canino_id=request.GET.get("perro"),
         )
+        request.session["ultima_reserva_id"] = reserva_nueva.id
+        messages.success(request, "Reserva creada exitosamente.")
         return redirect("ver_reservas")
 
     return render(request, "reservas/reserva.html", {
@@ -133,7 +142,6 @@ def reserva(request):
         "horasD_corte": horasD_corte,
         "perros_cli": perros_cli,
     })
-
 
 # Ver reservas
 def ver_reservas(request):
@@ -149,11 +157,25 @@ def ver_reservas(request):
         cliente_id_cliente_id=cliente_id
     ).order_by("hora_res")
 
+    ultima_reserva = None
+    reserva_id = request.session.pop("ultima_reserva_id", None)
+    if reserva_id:
+        try:
+            ultima_reserva = Reserva.objects.get(pk=reserva_id, cliente_id_cliente_id=cliente_id)
+        except Reserva.DoesNotExist:
+            ultima_reserva = None
+
     return render(request, "reservas/ver_reservas.html", {
         "res_xfecha": res_xfecha,
-        "ver_xfecha": ver_xfecha
+        "ver_xfecha": ver_xfecha,
+        "ultima_reserva": ultima_reserva,
     })
 
+from django.utils import timezone
+
+def servicios(request):
+    today = timezone.localdate().strftime("%Y-%m-%d")
+    return render(request, 'reservas/servicios.html', {"today": today})
 
 # Logout
 def logout_cliente(request):

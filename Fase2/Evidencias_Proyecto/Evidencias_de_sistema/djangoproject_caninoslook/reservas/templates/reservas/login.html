@@ -23,16 +23,20 @@
 
         <div class="mb-3">
           <label for="user_or_email" class="form-label">Número o Email</label>
-          <input type="text" class="form-control" id="user_or_email" name="user_or_email" required autofocus>
+          <input type="text" class="form-control" id="user_or_email" name="user_or_email" required autofocus placeholder="Ej: +56912345678 o correo@email.com">
         </div>
 
         <div class="mb-3">
           <label for="password" class="form-label">Contraseña</label>
-          <input type="password" class="form-control" id="password" name="password" required>
+          <input type="password" class="form-control" id="password" name="password" required placeholder="Tu contraseña segura">
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Ingresar</button>
       </form>
+
+      <div class="text-center mt-3">
+        <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
+      </div>
     </div>
   </div>
 {% endblock %}

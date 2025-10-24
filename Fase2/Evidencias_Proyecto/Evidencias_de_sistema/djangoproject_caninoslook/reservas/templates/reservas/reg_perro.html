@@ -5,6 +5,7 @@
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="card col-12 col-md-8 col-lg-6 p-4">
       <h2 class="mb-4 text-center">Registrar Mascota</h2>
+      <p class="text-muted text-center mb-4">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
 
       {% if messages %}
         {% for message in messages %}
@@ -17,50 +18,67 @@
 
       <form method="POST">
         {% csrf_token %}
+
+        <h5 class="mb-3">Información básica</h5>
+
         <!--NOMBRE PERRO-->
         <div class="mb-3">
-          {{ form.nombre_can.label_tag }} {{ form.nombre_can }}
+          {{ form.nombre_can.label_tag }} <span class="text-danger">*</span>
+          {{ form.nombre_can }}
           {% if form.nombre_can.errors %}
-            <div class="text-danger small">{{ form.nombre_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.nombre_can.errors }}</div>
           {% endif %}
         </div>
+
         <!--FECHA DE NACIMIENTO-->
         <div class="mb-3">
-          {{ form.fecha_nac_can.label_tag }} {{ form.fecha_nac_can }}
+          {{ form.fecha_nac_can.label_tag }} <span class="text-danger">*</span>
+          {{ form.fecha_nac_can }}
           {% if form.fecha_nac_can.errors %}
-            <div class="text-danger small">{{ form.fecha_nac_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.fecha_nac_can.errors }}</div>
           {% endif %}
         </div>
+
         <!--RAZA-->
         <div class="mb-3">
-          {{ form.raza_can.label_tag }} {{ form.raza_can }}
+          {{ form.raza_can.label_tag }} <span class="text-danger">*</span>
+          {{ form.raza_can }}
           {% if form.raza_can.errors %}
-            <div class="text-danger small">{{ form.raza_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.raza_can.errors }}</div>
           {% endif %}
         </div>
+
         <!--PESO-->
         <div class="mb-3">
-          {{ form.peso_can.label_tag }} {{ form.peso_can }}
+          {{ form.peso_can.label_tag }} <span class="text-danger">*</span>
+          {{ form.peso_can }}
           {% if form.peso_can.errors %}
-            <div class="text-danger small">{{ form.peso_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.peso_can.errors }}</div>
           {% endif %}
         </div>
+
         <!--TAMAÑO-->
         <div class="mb-3">
-          {{ form.tamano_can.label_tag }} {{ form.tamano_can }}
+          {{ form.tamano_can.label_tag }} <span class="text-danger">*</span>
+          {{ form.tamano_can }}
           {% if form.tamano_can.errors %}
-            <div class="text-danger small">{{ form.tamano_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.tamano_can.errors }}</div>
           {% endif %}
         </div>
+
+        <h5 class="mt-4 mb-3">Cuidados especiales</h5>
+
         <!--CUIDADOS ESPECIALES-->
         <div class="mb-3">
-          {{ form.cuidados_esp_can.label_tag }} {{ form.cuidados_esp_can }}
+          {{ form.cuidados_esp_can.label_tag }}
+          {{ form.cuidados_esp_can }}
           {% if form.cuidados_esp_can.errors %}
-            <div class="text-danger small">{{ form.cuidados_esp_can.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.cuidados_esp_can.errors }}</div>
           {% endif %}
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Guardar</button>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 mt-2">Volver al inicio</a>
       </form>
     </div>
   </div>

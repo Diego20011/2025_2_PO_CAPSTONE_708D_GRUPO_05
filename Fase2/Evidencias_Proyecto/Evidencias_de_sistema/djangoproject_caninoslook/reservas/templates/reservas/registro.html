@@ -5,6 +5,7 @@
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="card col-12 col-md-8 col-lg-6 p-4">
       <h2 class="mb-4 text-center">Registro de Cliente</h2>
+      <p class="text-muted text-center mb-4">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
 
       {% if messages %}
         {% for message in messages %}
@@ -17,54 +18,60 @@
 
       <form method="post">
         {% csrf_token %}
+
+        <h5 class="mb-3">Datos personales</h5>
+
         <!--NOMBRE/S Y APELLIDO/S-->
         <div class="row">
           <div class="col-md-6 mb-3">
-            {{ form.nombres_cli.label_tag }} {{ form.nombres_cli }}
+            {{ form.nombres_cli.label_tag }} <span class="text-danger">*</span>
+            {{ form.nombres_cli }}
             {% if form.nombres_cli.errors %}
-              <div class="text-danger small" style="list-style: none; padding-left: 15px;">Nombre/s debe tener:</div>
-              <div class="text-danger small">{{ form.nombres_cli.errors }}</div>
+              <div class="alert alert-danger mt-1 py-1">{{ form.nombres_cli.errors }}</div>
             {% endif %}
           </div>
           <div class="col-md-6 mb-3">
-            {{ form.apellidos_cli.label_tag }} {{ form.apellidos_cli }}
+            {{ form.apellidos_cli.label_tag }} <span class="text-danger">*</span>
+            {{ form.apellidos_cli }}
             {% if form.apellidos_cli.errors %}
-              <div class="text-danger small" style="list-style: none; padding-left: 15px;">Apellido/s debe tener:</div>
-              <div class="text-danger small">{{ form.apellidos_cli.errors }}</div>
+              <div class="alert alert-danger mt-1 py-1">{{ form.apellidos_cli.errors }}</div>
             {% endif %}
           </div>
         </div>
+
         <!--EMAIL-->
         <div class="mb-3">
-          {{ form.email_cli.label_tag }} {{ form.email_cli }}
+          {{ form.email_cli.label_tag }} <span class="text-danger">*</span>
+          {{ form.email_cli }}
           {% if form.email_cli.errors %}
-            <div class="text-danger small">{{ form.email_cli.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.email_cli.errors }}</div>
           {% endif %}
         </div>
+
         <!--NUMERO-->
         <div class="mb-3">
-          {{ form.numero_cli.label_tag }}
-          <div class="input-group"> <!--input-group es un contenedor de Bootstrap para unir inputs con textos, botones o íconos al inicio o al final.-->
-            <span class="input-group-text">+569</span> <!--input-group-text define contenido que se muestra dentro del input, generalmente como prefijo o sufijo.-->
-            <!--Usamos <span> aquí porque:
-              Es un elemento inline, así que no rompe la línea y queda alineado con el input.
-              Bootstrap lo recomienda para la clase input-group-text, asegurando que el estilo y la alineación funcionen correctamente.-->
+          {{ form.numero_cli.label_tag }} <span class="text-danger">*</span>
+          <div class="input-group">
+            <span class="input-group-text">+569</span>
             {{ form.numero_cli }}
           </div>
           {% if form.numero_cli.errors %}
-            <div class="text-danger small">{{ form.numero_cli.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.numero_cli.errors }}</div>
           {% endif %}
         </div>
+
         <!--CONTRASEÑA-->
         <div class="mb-3">
-          {{ form.password.label_tag }} {{ form.password }}
+          {{ form.password.label_tag }} <span class="text-danger">*</span>
+          {{ form.password }}
           {% if form.password.errors %}
-            <div class="text-danger small" style="list-style: none; padding-left: 15px;">Contraseña debe tener:</div>
-            <div class="text-danger small">{{ form.password.errors }}</div>
+            <div class="alert alert-danger mt-1 py-1">{{ form.password.errors }}</div>
           {% endif %}
         </div>
+
         <!--BOTÓN PARA ENVIAR FORMULARIO-->
         <button type="submit" class="btn btn-primary w-100">Registrar</button>
+        <a href="{% url 'login' %}" class="btn btn-outline-secondary w-100 mt-2">¿Ya tienes cuenta? Inicia sesión</a>
       </form>
     </div>
   </div>

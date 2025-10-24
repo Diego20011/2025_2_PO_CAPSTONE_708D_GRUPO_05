@@ -26,7 +26,7 @@ SECRET_KEY = os.environ.get("djangoCanLook_secretkey")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost"]
+ALLOWED_HOSTS = ["localhost", '127.0.0.1']
 
 
 # Application definition
@@ -79,8 +79,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'caninoslook',
-        'USER': 'adminCanLook',
-        'PASSWORD': os.environ.get("adminCanLook"),
+        'USER': 'root',
+        'PASSWORD': 'caninoslook'##os.environ.get("adminCanLook"),
     }
 }
 

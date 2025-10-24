@@ -20,7 +20,9 @@
             </p>
           </div>
         {% endfor %}
-  {% else %}
-    <div class="alert alert-info">No hay reservas realizadas por {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}.</div>
-  {% endif %}
+{% else %}
+  <div class="alert alert-info">
+    <p>No hay reservas realizadas por {{ request.session.cliente_nombre }}</p>
+  </div>
+{% endif %}
 {% endblock %}

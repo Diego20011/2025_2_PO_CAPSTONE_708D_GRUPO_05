@@ -4,12 +4,18 @@
 {% block content %}
   <div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
     <div class="card col-12 col-md-10 col-lg-8 p-4">
-      <h2 class="mb-4 text-center">Reservas</h2>
+      <h2 class="mb-4 text-center">Mis Reservas</h2>
 
       <form method="get" action="{% url 'ver_reservas' %}" class="mb-4">
-        <label for="fecha_reserva" class="form-label">Ver reservas para:</label>
+        <label for="fecha_reserva" class="form-label">Filtrar por fecha:</label>
         <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" onchange="this.form.submit()" value="{{ ver_xfecha }}">
       </form>
+
+      {% if ultima_reserva %}
+        <div class="alert alert-success">
+          <strong>Reserva reciente:</strong> {{ ultima_reserva.servicio_res }} el {{ ultima_reserva.fecha_res }} a las {{ ultima_reserva.hora_res }} para {{ ultima_reserva.canino_id_canino.nombre_can }}.
+        </div>
+      {% endif %}
 
       {% if res_xfecha %}
         {% for f in res_xfecha %}
@@ -31,8 +37,10 @@
           </div>
         {% endfor %}
       {% else %}
-        <div class="alert alert-info">No hay reservas para esta fecha.</div>
+        <div class="alert alert-info text-center">No hay reservas registradas para esta fecha.</div>
       {% endif %}
+
+      <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 mt-3">Volver al inicio</a>
     </div>
   </div>
 {% endblock %}

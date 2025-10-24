@@ -1,0 +1,32 @@
+{% extends "reservas/base.html" %}
+{% load static %}
+{% block title %}Servicios - CaninosLook{% endblock %}
+
+{% block content %}
+  <div class="container py-5">
+    <h2 class="mb-4">Nuestros Servicios</h2>
+    <p class="text-center text-muted mb-5">En CaninosLook transformamos patitas en estilo. Elige el servicio ideal para tu mascota.</p>
+
+    <div class="row justify-content-center">
+      <!-- Card: Baño -->
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 text-center">
+          <img src="{% static 'reservas/images/servicio_bano.png' %}" alt="Baño canino" class="img-decorativa mb-3">
+          <h5 class="card-title">Baño relajante</h5>
+          <p class="card-text">Incluye shampoo suave, limpieza profunda, secado y perfume. Ideal para mantener a tu mascota fresca y feliz.</p>
+          <a href="{% url 'reservar_hora' %}?servicio=Baño&fecha_reserva={{ today }}" class="btn btn-primary">Reservar baño</a>
+        </div>
+      </div>
+
+      <!-- Card: Corte -->
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 text-center">
+          <img src="{% static 'reservas/images/servicio_corte.png' %}" alt="Corte de pelo" class="img-decorativa mb-3">
+          <h5 class="card-title">Corte de pelo</h5>
+          <p class="card-text">Estilo personalizado según raza y preferencia. Usamos herramientas seguras y técnicas profesionales.</p>
+          <a href="{% url 'reservar_hora' %}?servicio=Corte&fecha_reserva={{ today }}" class="btn btn-primary">Reservar corte</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

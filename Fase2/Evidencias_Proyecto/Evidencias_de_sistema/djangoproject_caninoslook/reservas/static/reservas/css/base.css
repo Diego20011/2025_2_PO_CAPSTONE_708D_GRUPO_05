@@ -1,24 +1,37 @@
+/* === Paleta de colores === */
+:root {
+  --color-fondo: #FFF8E1;
+  --color-primario: #FFB74D;
+  --color-primario-hover: #FFA726;
+  --color-secundario: #81D4FA;
+  --color-texto: #6D4C41;
+  --color-acento: #AED581;
+  --color-tarjeta: #FFE0B2;
+}
+
 /* === Estilo general === */
 body {
-  background: linear-gradient(135deg, #FFDAB9, #FFF3E0);
-  min-height: 100vh;
+  background-color: var(--color-fondo);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--color-texto);
+  min-height: 100vh;
 }
 
 /* === Navbar === */
 .navbar {
-  background-color: #FF6F61 !important;
+  background-color: var(--color-primario);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-brand {
   font-weight: bold;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
+  color: white !important;
 }
 
-/* === Tarjetas (formularios, vistas) === */
+/* === Tarjetas === */
 .card {
-  background-color: #FFE0B2;
+  background-color: var(--color-tarjeta);
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
@@ -30,20 +43,36 @@ body {
 }
 
 /* === Botones === */
-.btn-primary {
-  background-color: #FF8C42;
-  border-color: #FF8C42;
+.btn {
+  transition: all 0.3s ease;
   font-weight: bold;
+  border-radius: 10px;
+}
+
+.btn-primary {
+  background-color: var(--color-primario);
+  border-color: var(--color-primario);
+  color: white;
 }
 
 .btn-primary:hover {
-  background-color: #FF7B1D;
-  border-color: #FF7B1D;
+  background-color: var(--color-primario-hover);
+  border-color: var(--color-primario-hover);
+}
+
+.btn-outline-dark {
+  border-color: var(--color-texto);
+  color: var(--color-texto);
+}
+
+.btn-outline-dark:hover {
+  background-color: var(--color-texto);
+  color: white;
 }
 
 /* === Títulos === */
-h2 {
-  color: #6D4C41;
+h1, h2, h5 {
+  color: var(--color-texto);
   font-weight: 600;
   text-align: center;
 }
@@ -57,7 +86,7 @@ h2 {
 /* === Etiquetas y campos === */
 label {
   font-weight: 500;
-  color: #5D4037;
+  color: var(--color-texto);
 }
 
 input[type="text"],
@@ -68,16 +97,62 @@ input[type="number"],
 select,
 textarea {
   border-radius: 10px;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
 }
 
 /* === Radios y checks === */
 .form-check-input {
-  accent-color: #FF8C42;
+  accent-color: var(--color-primario);
+}
+
+/* === Enlaces === */
+a {
+  color: var(--color-texto);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: var(--color-primario-hover);
+}
+
+/* === Imágenes decorativas === */
+.img-decorativa {
+  max-width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+/* === Footer === */
+footer {
+  background-color: var(--color-primario);
+  color: white;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 3rem;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+}
+
+footer a {
+  color: var(--color-secundario);
+  margin: 0 10px;
+}
+
+footer a:hover {
+  color: white;
+  text-decoration: underline;
 }
 
 /* === Responsive === */
 @media (max-width: 576px) {
   .card {
     padding: 1.5rem;
+  }
+
+  footer {
+    font-size: 0.8rem;
   }
 }
