@@ -26,7 +26,8 @@ SECRET_KEY = os.environ.get("djangoCanLook_secretkey")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", '127.0.0.1']
+ALLOWED_HOSTS = ["localhost", '127.0.0.1', "lesli-trigonous-velia.ngrok-free.dev"]
+CSRF_TRUSTED_ORIGINS = ['https://lesli-trigonous-velia.ngrok-free.dev']
 
 
 # Application definition
@@ -78,9 +79,9 @@ WSGI_APPLICATION = 'djangoproject_caninoslook.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'caninoslook',
-        'USER': 'root',
-        'PASSWORD': 'caninoslook'##os.environ.get("adminCanLook"),
+        'NAME': 'prueba_db_migrate',
+        'USER': 'prueba_db_migrate',
+        'PASSWORD': "1234abcd*",
     }
 }
 

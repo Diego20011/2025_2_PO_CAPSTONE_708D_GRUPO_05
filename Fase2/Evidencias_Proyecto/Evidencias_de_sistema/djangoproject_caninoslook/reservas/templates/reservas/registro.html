@@ -62,10 +62,10 @@
 
         <!--CONTRASEÑA-->
         <div class="mb-3">
-          {{ form.password.label_tag }} <span class="text-danger">*</span>
-          {{ form.password }}
-          {% if form.password.errors %}
-            <div class="alert alert-danger mt-1 py-1">{{ form.password.errors }}</div>
+          {{ form.password_cli.label_tag }} <span class="text-danger">*</span>
+          {{ form.password_cli }}
+          {% if form.password_cli.errors %}
+            <div class="alert alert-danger mt-1 py-1">{{ form.password_cli.errors }}</div>
           {% endif %}
         </div>
 

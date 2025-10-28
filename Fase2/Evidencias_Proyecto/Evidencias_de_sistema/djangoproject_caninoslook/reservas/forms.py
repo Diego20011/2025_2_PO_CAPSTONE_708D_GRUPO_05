@@ -16,17 +16,17 @@ class RegistroDeClienteForm(forms.ModelForm):
     class Meta: #clase interna especial que se usa para configurar el comportamiento del modelo o del formulario donde está definida.
         #Cuando la defines dentro de un forms.ModelForm, class Meta: le dice a Django de qué modelo sacar los datos y qué campos incluir o excluir.
         model = Cliente #de qué modelo sacar los datos.
-        fields = ['nombres_cli', 'apellidos_cli', 'email_cli', 'numero_cli', 'password'] #qué campos incluir o excluir.
+        fields = ['nombres_cli', 'apellidos_cli', 'email_cli', 'numero_cli', 'password_cli'] #qué campos incluir o excluir.
         #labels se usa para cambiar el texto que aparece como etiqueta (label_tag) de cada campo del formulario en el HTML.
         labels = {"nombres_cli": "Nombre/s:",
                   "apellidos_cli": "Apellido/s",
                   "email_cli": "Email:",
                   "numero_cli": "Número:",
-                  "password": "Contraseña:"}
+                  "password_cli": "Contraseña:"}
         #widgets es un diccionario que le dice a Django qué HTML renderizar para cada campo del formulario y permite personalizar su apariencia o comportamiento.
         #attrs={} -> atributos HTML adicionales
         widgets = {
-            "nombres_cli": forms.TextInput(attrs={"placeholder": "Escribe aquí tu/s nombre/s.",
+            "nombres_cli": forms.TextInput(attrs={"placeholder": "Ingresa nombre/s.",
                                                   "class": "form-control"}), 
             #form-control: clase CSS que se usa para dar estilo uniforme y profesional a los campos de formularios en HTML, como <input>, <select>, <textarea>, etc.
             #Le da un ancho del 100% (ocupa todo el contenedor).
@@ -35,17 +35,17 @@ class RegistroDeClienteForm(forms.ModelForm):
             #Cambia el color del borde al hacer foco (:focus), mostrando un borde azul o similar.
             #Asegura que sea accesible y consistente en todos los navegadores.
 
-            "apellidos_cli": forms.TextInput(attrs={"placeholder": "Escribe aquí tu/s apellido/s.",
+            "apellidos_cli": forms.TextInput(attrs={"placeholder": "Ingresa apellido/s.",
                                                     "class": "form-control"}),
 
-            "email_cli": forms.TextInput(attrs={"placeholder": "Escribe aquí tu email.",
+            "email_cli": forms.TextInput(attrs={"placeholder": "Ingresa email.",
                                                 "class": "form-control"}),
 
-            "numero_cli": forms.TextInput(attrs={"placeholder": "Escribe aquí tu número de teléfono registrado en WhatsApp.",
+            "numero_cli": forms.TextInput(attrs={"placeholder": "Ingresa número en WhatsApp.",
                                                  "class": "form-control"}),
 
-            "password": forms.PasswordInput(attrs={"placeholder": "Escribe aquí tu contraseña.",
-                                                   "class": "form-control"}),}
+            "password_cli": forms.PasswordInput(attrs={"placeholder": "Ingresa contraseña.",
+                                                       "class": "form-control"}),}
 
         #Personalizar los mensajes de error de las validaciones básicas que vienen del models.py
         error_messages ={
@@ -90,7 +90,7 @@ class RegistroDeClienteForm(forms.ModelForm):
             #Solo letras permitidas y 1 espacio entre palabras.
             #Mínimo 3 caracteres en total.
             raise ValidationError(["3-30 caracteres.",
-                                  "Solo se permiten letras letras.",
+                                  "Solo se permiten letras.",
                                   "Solo un espacio entre palabras"])
             #raise se usa para lanzar una excepción (frena el código). Luego se ocupa en el html como mensaje de error, sin antes definir en views.py.
             #Django lo quita del diccionario cleaned_data porque el campo no es válido.
@@ -100,7 +100,7 @@ class RegistroDeClienteForm(forms.ModelForm):
         apellido = self.cleaned_data.get('apellidos_cli').strip() # strip le quita espacios al inicio y al final.
         if not re.match("^(?=.{3,}$)[A-Za-zÁÉÍÓÚáéíóúÑñ]+( [A-Za-zÁÉÍÓÚáéíóúÑñ]+)*$", apellido):
             raise ValidationError(["3-30 caracteres.",
-                                  "Solo se permiten letras letras.",
+                                  "Solo se permiten letras.",
                                   "Solo un espacio entre palabras"])
         return apellido
 
@@ -121,8 +121,8 @@ class RegistroDeClienteForm(forms.ModelForm):
             raise ValidationError("Este número ya está registrado.")
         return numero569
 
-    def clean_password(self):
-        password = self.cleaned_data.get('password')
+    def clean_password_cli(self):
+        password = self.cleaned_data.get('password_cli')
         if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"[a-z]", password) or not re.search(r"[0-9]", password):
             raise ValidationError(["8 o + caracteres.",
                                     "1 mayúscula.",

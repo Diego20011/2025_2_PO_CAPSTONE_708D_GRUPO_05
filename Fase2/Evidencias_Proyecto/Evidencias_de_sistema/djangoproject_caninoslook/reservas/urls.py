@@ -8,7 +8,7 @@ urlpatterns = [
     path("logout/", views.logout_cliente, name="logout"),
 
     # Navegación principal
-    path("home/", views.home, name="home"),
+    path("", views.home, name="home"),
 
     # Registro y reservas
     path("registrar_perro/", views.registrar_canino, name="registrar_perro"),

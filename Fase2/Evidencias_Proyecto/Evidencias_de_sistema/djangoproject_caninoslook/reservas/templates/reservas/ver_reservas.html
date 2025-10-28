@@ -31,9 +31,9 @@
                 <span class="text-success">Pagado</span>
               {% endif %}
             </p>
-            <p><strong>Cliente:</strong> {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}</p>
-            <p><strong>Contacto:</strong> {{ f.cliente_id_cliente.email_cli }}, {{ f.cliente_id_cliente.numero_cli }}</p>
-            <p><strong>Perro:</strong> {{ f.canino_id_canino.nombre_can }}</p>
+            <p><strong>Cliente:</strong> {{ f.cliente_id_res.nombres_cli }} {{ f.cliente_id_res.apellidos_cli }}</p>
+            <p><strong>Contacto:</strong> {{ f.cliente_id_res.email_cli }}, {{ f.cliente_id_res.numero_cli }}</p>
+            <p><strong>Perro:</strong> {{ f.canino_id_res.nombre_can }}</p>
           </div>
         {% endfor %}
       {% else %}

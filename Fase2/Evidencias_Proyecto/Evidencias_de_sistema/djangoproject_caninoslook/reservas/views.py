@@ -12,7 +12,7 @@ def registrar_cliente(request):
     if request.method == "POST":
         if form.is_valid():
             cliente = form.save(commit=False)
-            cliente.password = make_password(form.cleaned_data["password"])
+            cliente.password_cli = make_password(form.cleaned_data["password_cli"])
             cliente.save()
             messages.success(request, "¡Cuenta creada con éxito! ✅")
             return redirect("login")
@@ -32,7 +32,7 @@ def login_cliente(request):
             messages.error(request, "Correo no registrado.")
             return render(request, "reservas/login.html")
 
-        if check_password(password, cli.password):
+        if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
             messages.success(request, f"Bienvenido, {cli.nombres_cli}!")
@@ -46,10 +46,10 @@ def registrar_canino(request):
     form = RegistroDeCaninoForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         canino = form.save(commit=False)
-        canino.cliente_id_cliente_id = request.session.get('cliente_id')
+        canino.cliente_id_can_id = request.session.get('cliente_id')
         canino.save()
         messages.success(request, "Mascota registrada correctamente.")
-        return redirect("reserva")
+        return redirect("reservar_hora")
     return render(request, "reservas/reg_perro.html", {"form": form})
 
 # Home
@@ -59,7 +59,7 @@ def home(request):
         return render(request, "reservas/home_no_registrado.html")
 
     reservas = Reserva.objects.filter(
-        cliente_id_cliente_id=cliente_id,
+        cliente_id_res=cliente_id,
         fecha_res__gte=timezone.localdate()
     ).order_by("fecha_res")
 
@@ -68,12 +68,14 @@ def home(request):
     })
 
 # Reserva de hora
+
+#FALTA CORREGIR QUE CUANDO PONEN EL MISMO DÍA OMITA LAS HORAS QUE YA NO SE PUEDEN.
 def reserva(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
         return redirect("login")
 
-    perros_cli = Canino.objects.filter(cliente_id_cliente_id=cliente_id)
+    perros_cli = Canino.objects.filter(cliente_id_can_id=cliente_id)
     if not perros_cli.exists():
         messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
         return redirect("registrar_perro")
@@ -126,10 +128,10 @@ def reserva(request):
             medio_pago_res="Efectivo",
             valor_res=0,
             confirm_pago_res=0,
-            cliente_id_cliente_id=cliente_id,
-            canino_id_canino_id=request.GET.get("perro"),
+            cliente_id_res_id=cliente_id,
+            canino_id_res_id=request.GET.get("perro"),
         )
-        request.session["ultima_reserva_id"] = reserva_nueva.id
+        request.session["ultima_reserva_id"] = reserva_nueva.pk
         messages.success(request, "Reserva creada exitosamente.")
         return redirect("ver_reservas")
 
@@ -144,6 +146,7 @@ def reserva(request):
     })
 
 # Ver reservas
+# FALTA ORDENAR LAS RESERVAS POR FECHA Y HORA, TENEMOS SOLO POR HORA.
 def ver_reservas(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
@@ -154,14 +157,14 @@ def ver_reservas(request):
 
     res_xfecha = Reserva.objects.filter(
         fecha_res=fecha,
-        cliente_id_cliente_id=cliente_id
+        cliente_id_res_id=cliente_id
     ).order_by("hora_res")
 
     ultima_reserva = None
     reserva_id = request.session.pop("ultima_reserva_id", None)
     if reserva_id:
         try:
-            ultima_reserva = Reserva.objects.get(pk=reserva_id, cliente_id_cliente_id=cliente_id)
+            ultima_reserva = Reserva.objects.get(pk=reserva_id, cliente_id_res_id=cliente_id)
         except Reserva.DoesNotExist:
             ultima_reserva = None
 

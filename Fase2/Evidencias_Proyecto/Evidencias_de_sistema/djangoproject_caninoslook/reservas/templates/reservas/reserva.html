@@ -30,7 +30,7 @@
         <h5 class="mt-4">Paso 2: Selecciona hora y mascota</h5>
         <p class="text-muted">Horas disponibles para <strong>{{ servSelecc }}</strong> el <strong>{{ fechaD_formateada }}</strong></p>
 
-        {% if (servSelecc == "Baño" and horasD_baño|length == 0) or (servSelecc == "Corte" and horasD_corte|length == 0) %}
+        {% if servSelecc == "Baño" and not horasD_baño or servSelecc == "Corte" and not horasD_corte %}
           <div class="alert alert-warning">No hay horas disponibles para este servicio en la fecha seleccionada.</div>
         {% else %}
           <form method="get" action="{% url 'reservar_hora' %}">
