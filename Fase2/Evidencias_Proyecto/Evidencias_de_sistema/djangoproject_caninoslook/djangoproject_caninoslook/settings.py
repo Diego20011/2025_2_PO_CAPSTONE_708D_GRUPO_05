@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import os
+import os #Traer variables de entorno de sistema o usuario actual.
+import dj_database_url #Ayuda a parsear la variable local de render llamada DATABASE_URL.
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +26,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("djangoCanLook_secretkey")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Importante: Render siempre guarda las variables como string, así que en tu settings.py debes convertirla a booleano.
+DEBUG = os.environ.get("DEBUG", "True") == "True" #Esta comparación devuelve booleano, True or False.
 
-ALLOWED_HOSTS = ["localhost", '127.0.0.1', "lesli-trigonous-velia.ngrok-free.dev"]
-CSRF_TRUSTED_ORIGINS = ['https://lesli-trigonous-velia.ngrok-free.dev']
+ALLOWED_HOSTS = ["miapp.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://miapp.onrender.com"]
 
 
 # Application definition
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,14 +79,13 @@ WSGI_APPLICATION = 'djangoproject_caninoslook.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+#dj_database_url.config(os.environ.get("DATABASE_URL")
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'prueba_db_migrate',
-        'USER': 'prueba_db_migrate',
-        'PASSWORD': "1234abcd*",
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600
+    )
 }
 
 
@@ -121,6 +124,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# This production code might break development mode, so we check whether we're in DEBUG mode
+if not DEBUG:
+    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+    # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+    # and renames the files with unique names for each version to support long-term caching
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
