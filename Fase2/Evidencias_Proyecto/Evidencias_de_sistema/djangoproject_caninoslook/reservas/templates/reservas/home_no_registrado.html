@@ -1,20 +1,175 @@
-{% extends "reservas/base.html" %}
-{% block title %}Bienvenido - CaninosLook{% endblock %}
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CaninosLook — Bienvenidos</title>
 
-{% block content %}
-  <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-    <div class="card col-12 col-md-8 col-lg-6 p-4 text-center">
-      <h2 class="mb-4">Bienvenido a CaninosLook</h2>
-      <p class="mb-3">Tu peluquería canina de confianza. Regístrate para agendar una hora, registrar a tu mascota y acceder a todos nuestros servicios.</p>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .navbar { background:#1f2428; }
+    .navbar-brand { color:#fff; font-weight:700; }
+    .navbar a, .navbar .nav-link { color:#cfd7df !important; }
+    .hero {
+      background: url("{% static 'img/hero.jpg' %}") center/cover no-repeat;
+      min-height: 52vh; display:flex; align-items:center; color:#fff;
+      position: relative;
+    }
+    .hero::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,.45); }
+    .hero > .container { position: relative; z-index: 2; }
+    .section { padding: 64px 0; }
+    .card img { object-fit:cover; height:180px; }
+    footer { background:#111; color:#bbb; padding:24px 0; }
+  </style>
+</head>
+<body>
 
-      <div class="d-grid gap-3">
-        <a href="{% url 'crear_cuenta' %}" class="btn btn-outline-primary">Crear cuenta</a>
-        <a href="{% url 'login' %}" class="btn btn-outline-success">Iniciar sesión</a>
-      </div>
-
-      <hr class="my-4">
-
-      <p class="small text-muted">¿Ya tienes una cuenta? Inicia sesión para continuar.</p>
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="/">CaninosLook</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"
+      aria-controls="nav" aria-expanded="false" aria-label="Menú">
+      <span class="navbar-toggler-icon" style="filter: invert(1)"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'login'%}">Iniciar sesión</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'crear_cuenta'%}">Crear cuenta</a></li>
+      </ul>
     </div>
   </div>
-{% endblock %}
+</nav>
+
+<header class="hero">
+    <img
+    src="{% static 'reservas/images/logo_caninoslook.png' %}"
+    alt="CaninosLook"
+    class="hero-logo d-none d-lg-block"
+  />
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-7">
+        <h1 class="display-5 fw-bold">Cuidado y estilo para tu mejor amigo</h1>
+        <p class="lead mt-3">
+          Peluquería canina, baños terapéuticos y spa, con profesionales que aman a los perros tanto como tú.
+        </p>
+        <div class="mt-4 d-flex gap-2">
+          <a class="btn btn-primary btn-lg" href="/login/">Agenda tu hora</a>
+          <a class="btn btn-outline-light btn-lg" href="#quienes-somos">Conócenos</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="quienes-somos" class="section">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <h2 class="fw-bold">¿Quiénes somos?</h2>
+        <p class="mt-3">
+          Somos <strong>CaninosLook</strong>, una peluquería y spa canino con enfoque en bienestar.
+          Trabajamos con productos hipoalergénicos, técnicas de bajo estrés y protocolos de higiene veterinaria.
+        </p>
+        <ul class="mt-3">
+          <li>Equipo con certificaciones en manejo canino.</li>
+          <li>Protocolos de seguridad, limpieza y desinfección.</li>
+          <li>Seguimiento de cada servicio con recomendaciones personalizadas.</li>
+        </ul>
+      </div>
+      <div class="col-lg-6">
+        <img src="{% static 'img/quienes.jpg' %}" class="img-fluid rounded-4 shadow" alt="Equipo CaninosLook">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="servicios" class="section bg-light">
+  <div class="container">
+    <h2 class="fw-bold text-center">Servicios</h2>
+    <p class="text-center text-muted mb-5">Todo lo que necesita tu peludo para verse y sentirse increíble.</p>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <img src="{% static 'reservas/images/logo_caninoslook.png' %}" class="card-img-top" alt="Baño y Cepillado">
+          <div class="card-body">
+            <h5 class="card-title">Baño & Cepillado</h5>
+            <p class="card-text">Productos hipoalergénicos, secado cuidadoso y cepillado anti-nudos.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <img src="{% static 'reservas/images/logo_caninoslook.png' %}" class="card-img-top" alt="Corte de Pelo">
+          <div class="card-body">
+            <h5 class="card-title">Corte de Pelo</h5>
+            <p class="card-text">Estándar de raza o a tu gusto. Siempre priorizando el bienestar.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+         <img src="{% static 'reservas/images/logo_caninoslook.png' %}" class="card-img-top" alt="Spa Canino">
+          <div class="card-body">
+            <h5 class="card-title">Spa Canino</h5>
+            <p class="card-text">Baños terapéuticos, limpieza de oídos y cuidado de almohadillas.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-5">
+      <a class="btn btn-primary btn-lg" href="/register/">Crear cuenta y agendar</a>
+    </div>
+  </div>
+</section>
+
+<section id="galeria" class="section">
+  <div class="container">
+    <h2 class="fw-bold text-center">Galería</h2>
+    <p class="text-center text-muted mb-4">Un vistazo a algunos de nuestros clientes felices.</p>
+    <div class="row g-3">
+      <div class="col-6 col-md-3"><img class="img-fluid rounded-3" src="{% static 'img/gal1.jpg' %}" alt=""></div>
+      <div class="col-6 col-md-3"><img class="img-fluid rounded-3" src="{% static 'img/gal2.jpg' %}" alt=""></div>
+      <div class="col-6 col-md-3"><img class="img-fluid rounded-3" src="{% static 'img/gal3.jpg' %}" alt=""></div>
+      <div class="col-6 col-md-3"><img class="img-fluid rounded-3" src="{% static 'img/gal4.jpg' %}" alt=""></div>
+    </div>
+  </div>
+</section>
+
+<section id="ubicaciones" class="section bg-light">
+  <div class="container">
+    <h2 class="fw-bold text-center">Ubicación</h2>
+    <p class="text-center text-muted">Visítanos en nuestra sede.</p>
+
+    <div class="row justify-content-center g-4">
+      <div class="col-lg-8">
+        <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+          <h5>Calle Hidra 204, Pudahuel</h5>
+          <p class="mb-2">Santiago, Chile</p>
+          <div class="ratio ratio-16x9">
+            <iframe
+              src="https://www.google.com/maps?q=Calle%20Hidra%20204%2C%20Pudahuel%2C%20Chile&output=embed"
+              style="border:0" allowfullscreen="" loading="lazy">
+            </iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a class="btn btn-outline-primary btn-lg" href="/login/">Ingresar para agendar</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container d-flex flex-column flex-md-row justify-content-between">
+    <div>© {{ now|date:"Y" }} CaninosLook</div>
+    <div>Contacto: <a class="link-light" href="mailto:contacto@caninoslook.cl">contacto@caninoslook.cl</a></div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

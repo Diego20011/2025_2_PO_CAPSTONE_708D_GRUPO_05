@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os #Traer variables de entorno de sistema o usuario actual.
-import dj_database_url #Ayuda a parsear la variable local de render llamada DATABASE_URL.
+import dj_database_url #Ayuda a parsear la variable local de render llamada DATABASE_.
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get("djangoCanLook_secretkey")
 # Importante: Render siempre guarda las variables como string, así que en tu settings.py debes convertirla a booleano.
 DEBUG = os.environ.get("DEBUG", "True") == "True" #Esta comparación devuelve booleano, True or False.
 
-ALLOWED_HOSTS = ["miapp.onrender.com"]
+ALLOWED_HOSTS = ["miapp.onrender.com","127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["https://miapp.onrender.com"]
 
 
