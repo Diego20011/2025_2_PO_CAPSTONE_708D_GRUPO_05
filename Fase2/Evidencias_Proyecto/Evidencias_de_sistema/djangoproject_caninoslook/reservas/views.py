@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
 
+from django.db.models import Q #Para poner condiciones OR (|) y AND (&) en las consultas de filter.
+
 # Registro de cliente
 def registrar_cliente(request):
     form = RegistroDeClienteForm(request.POST or None)
@@ -146,19 +148,23 @@ def reserva(request):
     })
 
 # Ver reservas
-# FALTA ORDENAR LAS RESERVAS POR FECHA Y HORA, TENEMOS SOLO POR HORA.
 def ver_reservas(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
         return redirect("login")
 
-    ver_xfecha = request.GET.get("fecha_reserva")
-    fecha = ver_xfecha or timezone.localdate()
+    fechaActual = timezone.localtime().date()
+    horaActual = timezone.localtime().time()
 
-    res_xfecha = Reserva.objects.filter(
-        fecha_res=fecha,
+    reservasACancelar = Reserva.objects.filter(
+        Q(fecha_res__gt=fechaActual) | #gt=greather than, e=equal
+        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
         cliente_id_res_id=cliente_id
-    ).order_by("hora_res")
+    ).order_by("fecha_res", "hora_res")
+
+    #Eliminando reserva.
+    if request.method == "POST" and "cancelar_reserva" in request.POST:
+        Reserva.objects.filter(pk=request.POST.get("reserva_id")).delete()
 
     ultima_reserva = None
     reserva_id = request.session.pop("ultima_reserva_id", None)
@@ -169,8 +175,7 @@ def ver_reservas(request):
             ultima_reserva = None
 
     return render(request, "reservas/ver_reservas.html", {
-        "res_xfecha": res_xfecha,
-        "ver_xfecha": ver_xfecha,
+        "reservasACancelar": reservasACancelar,
         "ultima_reserva": ultima_reserva,
     })
 
