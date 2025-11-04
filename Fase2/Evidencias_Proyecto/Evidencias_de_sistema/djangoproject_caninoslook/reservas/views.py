@@ -122,20 +122,26 @@ def reserva(request):
         horasD_baño = lista_horas_full[:17]
         horasD_corte = lista_horas_full[:13]
 
-    if request.GET.get("hora") and request.GET.get("perro"):
-        reserva_nueva = Reserva.objects.create(
-            servicio_res=servSelecc,
-            hora_res=request.GET.get("hora"),
-            fecha_res=fechaDeseada,
-            medio_pago_res="Efectivo",
-            valor_res=0,
-            confirm_pago_res=0,
-            cliente_id_res_id=cliente_id,
-            canino_id_res_id=request.GET.get("perro"),
-        )
+    if request.method == "POST" and "reservar_hora" in request.POST: #reservar_hora es el name del <button>
+        try:
+            reserva_nueva = Reserva.objects.create(
+                servicio_res=servSelecc,
+                hora_res=request.GET.get("hora"),
+                fecha_res=fechaDeseada,
+                medio_pago_res="Efectivo",
+                valor_res=0,
+                confirm_pago_res=0,
+                cliente_id_res_id=cliente_id,
+                canino_id_res_id=request.GET.get("perro"),
+            )
+            messages.success(request, "✅ Reserva creada correctamente")
+        except IntegrityError as e:
+            if "unique_fecha_hora" in str(e):
+                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra.")
+            else:
+                messages.error(request, "💻💥 Error inesperado. Intenta recargar la página o abrir el enlace en otra pestaña.")
+
         request.session["ultima_reserva_id"] = reserva_nueva.pk
-        messages.success(request, "Reserva creada exitosamente.")
-        return redirect("ver_reservas")
 
     return render(request, "reservas/reserva.html", {
         "res_x_fecha": res_x_fecha,
@@ -157,8 +163,8 @@ def ver_reservas(request):
     horaActual = timezone.localtime().time()
 
     reservasACancelar = Reserva.objects.filter(
-        Q(fecha_res__gt=fechaActual) | #gt=greather than, e=equal
-        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
+        Q(fecha_res__gt=fechaActual) | #gt=greather than, e=equal, Q es una libreria para | &.
+        Q(fecha_res=fechaActual, hora_res__gte=horaActual), #fecha_res sea igual a fechaActual y hora_res sea mayor o igual que horaActual
         cliente_id_res_id=cliente_id
     ).order_by("fecha_res", "hora_res")
 

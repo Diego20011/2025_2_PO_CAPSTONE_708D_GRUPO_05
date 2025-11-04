@@ -82,6 +82,8 @@ class Reserva(models.Model):
         verbose_name = "Reserva"
         verbose_name_plural = "Reservas"
 
+        constraints = [models.UniqueConstraint(fields=["fecha_res", "hora_res"], name="unique_fecha_hora")] #Junta "fecha_res", "hora_res" para crear una restriccion única.
+
     def __str__(self):
         return f"{self.servicio_res} - {self.fecha_res} {self.hora_res}"
 

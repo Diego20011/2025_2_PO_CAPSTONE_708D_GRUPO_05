@@ -33,7 +33,8 @@
         {% if servSelecc == "Baño" and not horasD_baño or servSelecc == "Corte" and not horasD_corte %}
           <div class="alert alert-warning">No hay horas disponibles para este servicio en la fecha seleccionada.</div>
         {% else %}
-          <form method="get" action="{% url 'reservar_hora' %}">
+          <form method="post" action="{% url 'reservar_hora' %}">
+            {% csrf_token %}
             <input type="hidden" name="servicio" value="{{ servSelecc }}">
             <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
 
@@ -65,7 +66,17 @@
               </select>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Confirmar reserva</button>
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-2" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+              {% endfor %}
+            {% endif %}
+
+
+            <button type="submit" name="reservar_hora" class="btn btn-primary w-100">Confirmar reserva</button>
             <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 mt-2">Volver al inicio</a>
           </form>
         {% endif %}
