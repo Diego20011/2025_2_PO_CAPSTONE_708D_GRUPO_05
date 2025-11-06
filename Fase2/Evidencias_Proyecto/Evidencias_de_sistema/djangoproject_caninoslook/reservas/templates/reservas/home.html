@@ -2,27 +2,27 @@
 {% block title %}Inicio - CaninosLook{% endblock %}
 {% block content %}
   {% if reservas %}
-        {% for f in reservas %}
-          <p>Reservas de {{ f.cliente_id_cliente.nombres_cli }} {{ f.cliente_id_cliente.apellidos_cli }}</p>
-          <div class="border rounded p-3 mb-3 bg-light">
-            <p><strong>Servicio:</strong> {{ f.servicio_res }}</p>
-            <p><strong>Perro:</strong> {{ f.canino_id_canino.nombre_can }}</p>
-            <p><strong>Fecha:</strong> {{ f.fecha_res }}</p>
-            <p><strong>Hora:</strong> {{ f.hora_res }}</p>
-            <p><strong>Medio de pago:</strong> {{ f.medio_pago_res }}</p>
-            <p><strong>Valor:</strong> ${{ f.valor_res }}</p>
-            <p><strong>Estado de pago:</strong>
-              {% if f.confirm_pago_res == 0 %}
-                <span class="text-danger">Sin pagar</span>
-              {% elif f.confirm_pago_res == 1 %}
-                <span class="text-success">Pagado</span>
-              {% endif %}
-            </p>
-          </div>
-        {% endfor %}
-{% else %}
-  <div class="alert alert-info">
-    <p>No hay reservas realizadas por {{ request.session.cliente_nombre }}</p>
-  </div>
-{% endif %}
+    <p>🗓️ Próximas reservas de {{ cliente.nombres_cli }}.</p>
+    {% for f in reservas %}
+      <div class="border rounded p-3 mb-3 bg-light">
+        <p><strong>Servicio:</strong> {{ f.servicio_res }}</p>
+        <p><strong>Perro:</strong> {{ f.canino_id_res.nombre_can }}</p>
+        <p><strong>Fecha:</strong> {{ f.fecha_res }}</p>
+        <p><strong>Hora:</strong> {{ f.hora_res }}</p>
+        <p><strong>Medio de pago:</strong> {{ f.medio_pago_res }}</p>
+        <p><strong>Valor:</strong> ${{ f.valor_res }}</p>
+        <p><strong>Estado de pago:</strong>
+          {% if f.confirm_pago_res == 0 %}
+            <span class="text-danger">Sin pagar</span>
+          {% elif f.confirm_pago_res == 1 %}
+            <span class="text-success">Pagado</span>
+          {% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">
+      <p>No hay reservas realizadas por {{ request.session.cliente_nombre }}</p>
+    </div>
+  {% endif %}
 {% endblock %}

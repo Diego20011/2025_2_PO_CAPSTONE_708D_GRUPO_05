@@ -5,7 +5,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
-
+from django.db import IntegrityError, transaction #Para manejar errores, Para atomic transaction.
+from django.core.exceptions import ValidationError #Para manejar errores.
 from django.db.models import Q #Para poner condiciones OR (|) y AND (&) en las consultas de filter.
 
 # Registro de cliente
@@ -65,12 +66,14 @@ def home(request):
         fecha_res__gte=timezone.localdate()
     ).order_by("fecha_res")
 
+    cliente = Cliente.objects.get(pk=cliente_id)
+
     return render(request, "reservas/home.html", {
         "reservas": reservas,
+        "cliente": cliente
     })
 
 # Reserva de hora
-
 #FALTA CORREGIR QUE CUANDO PONEN EL MISMO DÍA OMITA LAS HORAS QUE YA NO SE PUEDEN.
 def reserva(request):
     cliente_id = request.session.get("cliente_id")
@@ -85,7 +88,7 @@ def reserva(request):
     servSelecc = request.GET.get("servicio")
     fechaDeseada = request.GET.get("fecha_reserva")
     fechaD_formateada = "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else ""
-
+                                  #select_for_update(), 
     res_x_fecha = Reserva.objects.filter(fecha_res=fechaDeseada).order_by("hora_res")
     lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 30)]
     horasD_baño, horasD_corte = [], []
@@ -123,25 +126,81 @@ def reserva(request):
         horasD_corte = lista_horas_full[:13]
 
     if request.method == "POST" and "reservar_hora" in request.POST: #reservar_hora es el name del <button>
+        DURACIONES = {
+            'Baño': timedelta(hours=1),
+            'Corte': timedelta(hours=3)}
+        inicio_nueva = datetime.combine(datetime.strptime(request.POST.get("fecha_reserva"), "%Y-%m-%d").date(), datetime.strptime(request.POST.get("hora"), "%H:%M:%S").time())
+        duracion = DURACIONES.get(request.POST.get("servicio"))
+        fin_nueva = inicio_nueva + duracion
+
+        #SOLUCIÓN RESERVAS CONCURRENTES.
         try:
-            reserva_nueva = Reserva.objects.create(
-                servicio_res=servSelecc,
-                hora_res=request.GET.get("hora"),
-                fecha_res=fechaDeseada,
-                medio_pago_res="Efectivo",
-                valor_res=0,
-                confirm_pago_res=0,
-                cliente_id_res_id=cliente_id,
-                canino_id_res_id=request.GET.get("perro"),
-            )
-            messages.success(request, "✅ Reserva creada correctamente")
+        #atomic() agrupa todas las consultas en un bloque “todo o nada”, si todo sale bien se aplican los camnios, sino, no.
+        #Atomicidad:
+        #Todo lo que ocurre dentro se ejecuta como una sola unidad.
+        #Si algo falla (excepción, error, etc.), se revierte todo — como si no hubiera pasado nada.
+
+        #Aislamiento temporal:
+        #Ningún otro proceso ve tus cambios hasta que la transacción termina exitosamente (commit).
+
+            with transaction.atomic(): #Permite utilizar select_for_update() que bloquea la lectura y escritura de las filas de la consulta hasta que se complete la transacción.
+                # Obtenemos las reservas actuales con select_for_update.
+                reservas_withAtomic = Reserva.objects.select_for_update().filter(fecha_res=request.POST.get("fecha_reserva"))
+                #Explicación de comportamiento select_for_update() con 2 reservas concurrentes:
+                #2 personas entran a reservar, reservan al mismo tiempo, el que llega primero a la bd es el que bloquea las consultas de lectura y escritura
+                #para las filas de la consulta reservas_withAtomic, esto seguirá así hasta terminar de ejecutar el código dentro de with transaction.atomic():
+                #Entonces, para la segunda persona habrá un delay o espera de 1 segundo más o menos mientras se ejecuta el código de la primera persona, ¿porque?
+                #porque la consulta involucra las mismas líneas, entonces debe esperar ya que estan bloqueadas.
+                #cuando se termina de ejecutar el código de with transaction.atomic(): de la 1era persona 
+                #se ejecuta la consulta de la 2da persona que estaba esperando, con la diferencia que ahora en la consulta apareceran las filas que agrego A.
+                #luego se ejecuta la lógica anti superposición de horas y si hay error lo lanza.
+                if reservas_withAtomic:
+                    for reserva in reservas_withAtomic:
+
+                        inicio_existente = datetime.combine(reserva.fecha_res, reserva.hora_res)
+                        duracion_existente = DURACIONES.get(reserva.servicio_res)
+                        fin_existente = inicio_existente + duracion_existente
+
+                        # Comprobación de superposición.
+                        if inicio_nueva < fin_existente and fin_nueva > inicio_existente:
+                            raise ValidationError("😔 Esa hora ya fue reservada. Elige otra. HEHE")
+
+                        #Crear reserva nueva.
+                        reserva_nueva = Reserva.objects.create(
+                            servicio_res=request.POST.get("servicio"),
+                            hora_res=datetime.strptime(request.POST.get("hora"), "%H:%M:%S").time(),
+                            fecha_res=datetime.strptime(request.POST.get("fecha_reserva"), "%Y-%m-%d").date(),
+                            medio_pago_res="Efectivo",
+                            valor_res=0,
+                            confirm_pago_res=0,
+                            cliente_id_res_id=cliente_id,
+                            canino_id_res_id=request.POST.get("perro"),
+                        )
+                        messages.success(request, "✅ Reserva creada correctamente")
+                        request.session["ultima_reserva_id"] = reserva_nueva.pk
+                else:
+                    reserva_nueva = Reserva.objects.create(
+                        servicio_res=request.POST.get("servicio"),
+                        hora_res=request.POST.get("hora"),
+                        fecha_res=request.POST.get("fecha_reserva"),
+                        medio_pago_res="Efectivo",
+                        valor_res=0,
+                        confirm_pago_res=0,
+                        cliente_id_res_id=cliente_id,
+                        canino_id_res_id=request.POST.get("perro"),
+                    )
+                    messages.success(request, "✅ Reserva creada correctamente")
+                    request.session["ultima_reserva_id"] = reserva_nueva.pk
+
         except IntegrityError as e:
             if "unique_fecha_hora" in str(e):
-                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra.")
+                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra. uwu")
+                print("error:", e)
             else:
                 messages.error(request, "💻💥 Error inesperado. Intenta recargar la página o abrir el enlace en otra pestaña.")
-
-        request.session["ultima_reserva_id"] = reserva_nueva.pk
+                print("error:", e)
+        except ValidationError as ve:
+            messages.error(request, ve.message)
 
     return render(request, "reservas/reserva.html", {
         "res_x_fecha": res_x_fecha,
