@@ -4,38 +4,79 @@
 {% block content %}
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="card col-12 col-md-8 col-lg-6 p-4">
-      <h2 class="mb-4 text-center">Reserva de hora</h2>
-      <p class="text-muted text-center mb-4">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
-
+      {% if paso1display == 0 %}
+        <button type="submit" name="volver" form="formPaso1" value="1" class="btn text-white position-relative start-0 top-50 translate-middle-y" style="background-color: #ff6b6b; padding: 5px 14px; font-size: 0.95rem;">
+          <span style="font-weight: bold;">&#8592;</span> Volver a paso 1
+        </button>
+      {% endif %}
+      <h2 class="mb-4 mt-2">Reserva de hora</h2>
       <!-- Formulario para seleccionar servicio y fecha -->
-      <form method="get" action="{% url 'reservar_hora' %}">
-        <h5 class="mb-3">Paso 1: Selecciona servicio y fecha</h5>
+      <form method="get" action="{% url 'reservar_hora' %}" id="formPaso1" {% if paso1display == 0 %} style="display: none;" {% endif %}>
+        <h5 class="mb-3">Paso 1: Selecciona servicio/s y fecha.</h5>
+        <p class="text-muted text-center mb-3">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
+        <div class="d-flex align-items-center text-center my-3">
+          <div class="flex-grow-1 border-top border-dark"></div>
+          <span class="mx-2 fw-bold text-muted">Servicio/s <span class="text-danger">*</span></span>
+          <div class="flex-grow-1 border-top border-dark"></div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="servicio" class="form-label">Estética principal:</label>
+            <select name="servicio" id="servicio" class="form-select">
+              <option value="">Selecciona servicio</option>
+              <option value="Corte y baño" {% if servSelecc == "Corte y baño" %}selected{% endif %}>Estética full</option>
+              <option value="Corte" {% if servSelecc == "Corte" %}selected{% endif %}>Corte de pelo</option>
+              <option value="Baño" {% if servSelecc == "Baño" %}selected{% endif %}>Baño</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="servicio2" class="form-label">Cuidados complementarios:</label>
+            <select name="servicio2" id="servicio2" class="form-select">
+              <option value="">Selecciona servicio</option>
+              <option value="Uñas y oidos" {% if servSelecc2 == "Uñas y oidos" %}selected{% endif %}>Cuidados Full</option>
+              <option value="Uñas" {% if servSelecc2 == "Uñas" %}selected{% endif %}>Corte de uñas</option>
+              <option value="Oidos" {% if servSelecc2 == "Oidos" %}selected{% endif %}>Limpieza de oídos</option>
+            </select>
+          </div>
+        </div>
 
-        <div class="mb-3">
-          <label for="servicio" class="form-label">Servicio <span class="text-danger">*</span></label>
-          <select name="servicio" id="servicio" class="form-select" required>
-            <option value="">-- Selecciona --</option>
-            <option value="Corte">Corte de pelo</option>
-            <option value="Baño">Baño</option>
-          </select>
+        <div class="d-flex align-items-center text-center my-3">
+          <div class="flex-grow-1 border-top border-dark"></div>
         </div>
 
         <div class="mb-3">
           <label for="fecha_reserva" class="form-label">Fecha <span class="text-danger">*</span></label>
-          <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" onchange="this.form.submit()" value="{{ fechaDeseada }}">
+          <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" value="{{ fechaDeseada }}" required>
         </div>
       </form>
 
-      {% if servSelecc %}
-        <h5 class="mt-4">Paso 2: Selecciona hora y mascota</h5>
-        <p class="text-muted">Horas disponibles para <strong>{{ servSelecc }}</strong> el <strong>{{ fechaD_formateada }}</strong></p>
+      {% if paso1display == 1 %}
+        <button type="submit" name="continuar" form="formPaso1" value="1" class="btn btn-primary mt-auto w-100">Continuar</button>
+      {% endif %}
+<!--
+      {% if paso1display == 0 %}
+        <button type="submit" name="volver" form="formPaso1" value="1">Volver</button>
+      {% endif %}-->
 
+      {% if paso1display == 0 %}
+        <h5 class="mt-0">Paso 2: Selecciona hora y mascota</h5>
+        <p class="text-muted text-center mb-3">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
+        {% if servSelecc and not servSelecc2 %}
+          <p class="text-muted">Horas disponibles para <strong>{{ diccionario_serv1 }}</strong> el <strong>{{ fechaD_formateada }}:</strong></p>
+        {% endif %}
+        {% if not servSelecc and servSelecc2 %}
+          <p class="text-muted">Horas disponibles para <strong>{{ diccionario_serv2 }}</strong> el <strong>{{ fechaD_formateada }}:</strong></p>
+        {% endif %}
+        {% if servSelecc2 and servSelecc %}
+          <p class="text-muted">Horas disponibles para <strong>{{ diccionario_serv1 }}</strong> + <strong>{{ diccionario_serv2 }}</strong> el <strong>{{ fechaD_formateada }}:</strong></p>
+        {% endif %}
+        <label for="perro" class="form-label">Seleccione horario <span class="text-danger">*</span></label>
         {% if servSelecc == "Baño" and not horasD_baño or servSelecc == "Corte" and not horasD_corte %}
           <div class="alert alert-warning">No hay horas disponibles para este servicio en la fecha seleccionada.</div>
         {% else %}
           <form method="post" action="{% url 'reservar_hora' %}">
             {% csrf_token %}
-            <input type="hidden" name="servicio" value="{{ servSelecc }}">
+            <input type="hidden" name="servicio" value="{{ servicioConcat }}">
             <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
 
             <div class="mb-3">
@@ -75,13 +116,12 @@
               {% endfor %}
             {% endif %}
 
-
             <button type="submit" name="reservar_hora" class="btn btn-primary w-100">Confirmar reserva</button>
             <a href="{% url 'home' %}" class="btn btn-outline-secondary w-100 mt-2">Volver al inicio</a>
           </form>
         {% endif %}
-      {% elif fechaD_formateada %}
-        <div class="alert alert-info mt-4">Selecciona un servicio y una fecha para ver las horas disponibles.</div>
+      {% elif servSelecc == "" and servSelecc2 == "" %}
+        <div class="alert alert-info mt-4">Selecciona al menos un servicio y una fecha para ver las horas disponibles.</div>
       {% endif %}
     </div>
   </div>

@@ -74,7 +74,7 @@ def home(request):
     })
 
 # Reserva de hora
-#FALTA CORREGIR QUE CUANDO PONEN EL MISMO DÍA OMITA LAS HORAS QUE YA NO SE PUEDEN.
+#FALTA CORREGIR QUE CUANDO PONEN EL MISMO DÍA OMITA LAS HORAS QUE YA NO SE PUEDEN, lo mismo para las fechas, que no se pueda poner una fecha antigua para reservar.
 def reserva(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
@@ -86,21 +86,62 @@ def reserva(request):
         return redirect("registrar_perro")
 
     servSelecc = request.GET.get("servicio")
+    if servSelecc not in ["Corte y baño", "Corte", "Baño", None, ""]: #Para validar servicio seleccionado.
+        messages.error(request, "Error, no existe el servicio principal.")
+        servSelecc = None
+    servSelecc2 = request.GET.get("servicio2")
+    if servSelecc2 not in ["Uñas y oidos", "Uñas", "Oidos", None, ""]: #Para validar servicio seleccionado.
+        messages.error(request, "Error, no existe el servicio complementario.")
+        servSelecc2 = None
+
+    diccionario_servicios = {
+    "Corte": "Corte de pelo",
+    "Baño": "Baño",
+    "Corte y Baño": "Estética full",
+    "Uñas": "Corte de uñas",
+    "Oidos": "Limpieza de oídos",
+    "Uñas y oidos": "Cuidados Full"}
+
+    diccionario_serv1 = (diccionario_servicios.get(servSelecc)) or ""
+    diccionario_serv2 = (diccionario_servicios.get(servSelecc2)) or ""
+    
+    if servSelecc and servSelecc2:
+        servicioConcat = f"{servSelecc} + {servSelecc2}"
+    else:
+        servicioConcat = servSelecc or servSelecc2 or ""
+    print(servicioConcat)
+
     fechaDeseada = request.GET.get("fecha_reserva")
     fechaD_formateada = "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else ""
-                                  #select_for_update(), 
     res_x_fecha = Reserva.objects.filter(fecha_res=fechaDeseada).order_by("hora_res")
-    lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 30)]
+    lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 15, 30, 45)] #0, 30 --> 0, 15, 30, 45
     horasD_baño, horasD_corte = [], []
 
     if res_x_fecha.exists() and servSelecc:
         i, c = 0, 0
         while i < len(lista_horas_full) and c < len(res_x_fecha):
             while lista_horas_full[i] == res_x_fecha[c].hora_res.strftime("%H:%M:%S"):
+                #Baño 45min
                 if res_x_fecha[c].servicio_res == "Baño":
-                    del lista_horas_full[i:i+2]
+                    del lista_horas_full[i:i+3] #i:i+3 Elimina el actual y 2 más.
+                #Corte 2horas
                 elif res_x_fecha[c].servicio_res == "Corte":
-                    del lista_horas_full[i:i+6]
+                    del lista_horas_full[i:i+8]
+                #Full estética 2horas y 45min
+                elif res_x_fecha[c].servicio_res == "Corte y Baño":
+                    del lista_horas_full[i:i+11]
+                #Baño + cuidados complementarios 1hora
+                elif res_x_fecha[c].servicio_res in ["Baño + Uñas", "Baño + Oidos", "Baño + Uñas y oidos"]:
+                    del lista_horas_full[i:i+4]
+                #Corte + cuidados complementarios 2horas y 15min
+                elif res_x_fecha[c].servicio_res in ["Corte + Uñas", "Corte + Oidos", "Corte + Uñas y oidos"]:
+                    del lista_horas_full[i:i+9]
+                #Full estética + cuidados complementarios 3horas
+                elif res_x_fecha[c].servicio_res in ["Corte y Baño + Uñas y oidos", "Corte y Baño + Uñas", "Corte y Baño + Oidos"]:
+                    del lista_horas_full[i:i+12]
+                #Cuidados complementarios por si solos o juntos 15min
+                elif res_x_fecha[c].servicio_res in ["Uñas y oidos", "Uñas", "Oidos"]:
+                    del lista_horas_full[i]
                 c += 1
                 if c >= len(res_x_fecha):
                     break
@@ -109,6 +150,7 @@ def reserva(request):
         horasTo_baño = lista_horas_full
         horasTo_corte = lista_horas_full
 
+        #Falta actualizar este código para agregar los nuevos servicios.
         if servSelecc == "Baño":
             for q in range(len(horasTo_baño) - 1):
                 if (datetime.strptime(horasTo_baño[q], "%H:%M:%S") + timedelta(minutes=30)).strftime("%H:%M:%S") == horasTo_baño[q+1]:
@@ -122,13 +164,14 @@ def reserva(request):
                 ):
                     horasD_corte.append(horasTo_corte[q2])
     else:
+        #Falta arreglar esto. Esto es el limite de agendar para cada servicio si no hay reservas para el dia.
         horasD_baño = lista_horas_full[:17]
         horasD_corte = lista_horas_full[:13]
 
     if request.method == "POST" and "reservar_hora" in request.POST: #reservar_hora es el name del <button>
         DURACIONES = {
             'Baño': timedelta(hours=1),
-            'Corte': timedelta(hours=3)}
+            'Corte +': timedelta(hours=3)}
         inicio_nueva = datetime.combine(datetime.strptime(request.POST.get("fecha_reserva"), "%Y-%m-%d").date(), datetime.strptime(request.POST.get("hora"), "%H:%M:%S").time())
         duracion = DURACIONES.get(request.POST.get("servicio"))
         fin_nueva = inicio_nueva + duracion
@@ -148,7 +191,7 @@ def reserva(request):
                 reservas_withAtomic = Reserva.objects.select_for_update().filter(fecha_res=request.POST.get("fecha_reserva"))
                 #Explicación de comportamiento select_for_update() con 2 reservas concurrentes:
                 #2 personas entran a reservar, reservan al mismo tiempo, el que llega primero a la bd es el que bloquea las consultas de lectura y escritura
-                #para las filas de la consulta reservas_withAtomic, esto seguirá así hasta terminar de ejecutar el código dentro de with transaction.atomic():
+                #de las filas de la consulta reservas_withAtomic, esto seguirá así hasta terminar de ejecutar el código dentro de with transaction.atomic():
                 #Entonces, para la segunda persona habrá un delay o espera de 1 segundo más o menos mientras se ejecuta el código de la primera persona, ¿porque?
                 #porque la consulta involucra las mismas líneas, entonces debe esperar ya que estan bloqueadas.
                 #cuando se termina de ejecutar el código de with transaction.atomic(): de la 1era persona 
@@ -163,7 +206,7 @@ def reserva(request):
 
                         # Comprobación de superposición.
                         if inicio_nueva < fin_existente and fin_nueva > inicio_existente:
-                            raise ValidationError("😔 Esa hora ya fue reservada. Elige otra. HEHE")
+                            raise ValidationError("😔 Esa hora ya fue reservada. Elige otra.")
 
                         #Crear reserva nueva.
                         reserva_nueva = Reserva.objects.create(
@@ -194,22 +237,38 @@ def reserva(request):
 
         except IntegrityError as e:
             if "unique_fecha_hora" in str(e):
-                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra. uwu")
+                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra.")
                 print("error:", e)
             else:
                 messages.error(request, "💻💥 Error inesperado. Intenta recargar la página o abrir el enlace en otra pestaña.")
                 print("error:", e)
         except ValidationError as ve:
             messages.error(request, ve.message)
-
+    
+    #Para deshabilitar campos del primer form donde selecciona servicio y fecha. Esto con la finalidad de que el usuario pueda cambiar el servicio luego de haber avanzado en los pasos.
+    #Ya que, si avanza en los pasos, aunque cambie el servicio en la parte de arriba, no se cambiará. Para eso implementaremos deshabilitar la parte de arriba y que pueda volver a la parte de arriba.
+    paso1display = 1
+    continuar = request.GET.get("continuar")
+    volver = request.GET.get("volver")
+    if (servSelecc or servSelecc2) and fechaDeseada and continuar == "1":
+        paso1display = 0
+        print(servSelecc)
+    if volver == "1":
+        paso1display = 1
+    
     return render(request, "reservas/reserva.html", {
         "res_x_fecha": res_x_fecha,
         "fechaDeseada": fechaDeseada,
         "fechaD_formateada": fechaD_formateada,
         "servSelecc": servSelecc,
+        "servSelecc2": servSelecc2,
+        "diccionario_serv1": diccionario_serv1,
+        "diccionario_serv2": diccionario_serv2,
         "horasD_baño": horasD_baño,
         "horasD_corte": horasD_corte,
         "perros_cli": perros_cli,
+        "servicioConcat": servicioConcat,
+        "paso1display": paso1display
     })
 
 # Ver reservas
