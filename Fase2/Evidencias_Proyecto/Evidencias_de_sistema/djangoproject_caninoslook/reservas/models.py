@@ -56,7 +56,7 @@ class Canino(models.Model):
 
 class Reserva(models.Model):
     id_reserva = models.AutoField(primary_key=True)
-    servicio_res = models.CharField("Servicio", max_length=20) #Hay que ponerle 30 max.
+    servicio_res = models.CharField("Servicio", max_length=30) #Hay que ponerle 30 max.
     hora_res = models.TimeField("Hora")
     fecha_res = models.DateField("Fecha")
     medio_pago_res = models.CharField("Medio de pago", max_length=15)
