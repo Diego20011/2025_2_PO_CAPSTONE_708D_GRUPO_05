@@ -1,13 +1,14 @@
-/* === Paleta de colores === */
+/* === Paleta de colores global === */
 :root {
-  --color-fondo: #FFF8E1;
-  --color-primario: #FFB74D;
-  --color-primario-hover: #FFA726;
-  --color-secundario: #81D4FA;
-  --color-texto: #6D4C41;
-  --color-acento: #AED581;
-  --color-tarjeta: #FFE0B2;
+  --color-fondo: #f4f6f8;
+  --color-primario: #2c3e50;
+  --color-secundario: #5dade2;
+  --color-texto: #2e2e2e;
+  --color-tarjeta: #ffffff;
+  --color-seccion: #ecf0f1;
+  --color-acento: #a3e4d7;
 }
+
 
 /* === Estilo general === */
 body {
@@ -20,127 +21,100 @@ body {
 /* === Navbar === */
 .navbar {
   background-color: var(--color-primario);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.navbar-brand {
+  color: #fff !important;
+  font-weight: 700;
+}
+.navbar .nav-link {
+  color: #cfd7df !important;
+}
+.navbar-toggler-icon {
+  filter: invert(1);
 }
 
-.navbar-brand {
-  font-weight: bold;
-  font-size: 1.4rem;
-  color: white !important;
+/* === Hero === */
+.hero {
+  background: url("/static/img/hero.jpg") center/cover no-repeat;
+  min-height: 52vh;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  position: relative;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+}
+.hero > .container {
+  position: relative;
+  z-index: 2;
+}
+
+/* === Secciones === */
+.section {
+  padding: 64px 0;
 }
 
 /* === Tarjetas === */
 .card {
   background-color: var(--color-tarjeta);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
   transition: transform 0.3s ease;
 }
-
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+}
+.card img {
+  object-fit: cover;
+  height: 180px;
 }
 
 /* === Botones === */
 .btn {
   transition: all 0.3s ease;
   font-weight: bold;
-  border-radius: 10px;
+  border-radius: 8px;
 }
-
 .btn-primary {
-  background-color: var(--color-primario);
-  border-color: var(--color-primario);
+  background-color: var(--color-secundario);
+  border-color: var(--color-secundario);
   color: white;
 }
-
 .btn-primary:hover {
-  background-color: var(--color-primario-hover);
-  border-color: var(--color-primario-hover);
+  background-color: #3399ff;
+  border-color: #3399ff;
 }
-
-.btn-outline-dark {
+.btn-outline-light {
+  border-color: white;
+  color: white;
+}
+.btn-outline-light:hover {
+  background-color: white;
+  color: var(--color-primario);
+}
+.btn-outline-secondary {
   border-color: var(--color-texto);
   color: var(--color-texto);
 }
-
-.btn-outline-dark:hover {
+.btn-outline-secondary:hover {
   background-color: var(--color-texto);
   color: white;
 }
 
-/* === Títulos === */
-h1, h2, h5 {
-  color: var(--color-texto);
-  font-weight: 600;
-  text-align: center;
-}
-
-/* === Alertas === */
-.alert {
-  font-weight: 500;
-  border-radius: 12px;
-}
-
-/* === Etiquetas y campos === */
-label {
-  font-weight: 500;
-  color: var(--color-texto);
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="date"],
-input[type="number"],
-select,
-textarea {
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-}
-
-/* === Radios y checks === */
-.form-check-input {
-  accent-color: var(--color-primario);
-}
-
-/* === Enlaces === */
-a {
-  color: var(--color-texto);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-  color: var(--color-primario-hover);
-}
-
-/* === Imágenes decorativas === */
-.img-decorativa {
-  max-width: 100%;
-  height: auto;
-  border-radius: 20px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-}
-
 /* === Footer === */
 footer {
-  background-color: var(--color-primario);
-  color: white;
-  padding: 2rem 0;
-  text-align: center;
-  font-size: 0.9rem;
-  margin-top: 3rem;
-  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #111;
+  color: #bbb;
+  padding: 24px 0;
 }
-
 footer a {
   color: var(--color-secundario);
-  margin: 0 10px;
+  text-decoration: none;
 }
-
 footer a:hover {
   color: white;
   text-decoration: underline;
@@ -149,9 +123,8 @@ footer a:hover {
 /* === Responsive === */
 @media (max-width: 576px) {
   .card {
-    padding: 1.5rem;
+    padding: 1.2rem;
   }
-
   footer {
     font-size: 0.8rem;
   }

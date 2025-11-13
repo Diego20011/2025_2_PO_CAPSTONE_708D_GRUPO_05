@@ -30,7 +30,7 @@
         </div>
       </div>
     {% endfor %}
-    <a href="{% url 'reservar_hora' %}" class="btn btn-primary mt-3">Reservar otra hora</a>
+    <a href="{% url 'ver_reservas' %}" class="btn btn-danger mt-3">Cancelar reserva</a>
     <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-secondary mt-2">Administrar mascotas</a>
   {% else %}
     <div class="alert alert-info">
