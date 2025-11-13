@@ -3,76 +3,45 @@
 
 {% block content %}
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
-    <div class="card col-12 col-md-8 col-lg-6 p-4">
-      <h2 class="mb-4 text-center">Registro de Cliente</h2>
+    <div class="card col-12 col-md-8 col-lg-6 p-4 shadow-sm">
+      <h2 class="mb-4 text-center">📝 Registro de Cliente</h2>
       <p class="text-muted text-center mb-4">Todos los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
-
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert {{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
 
       <form method="post">
         {% csrf_token %}
 
-        <h5 class="mb-3">Datos personales</h5>
+        <!-- Campos del formulario -->
+        {{ form.as_p }}
 
-        <!--NOMBRE/S Y APELLIDO/S-->
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            {{ form.nombres_cli.label_tag }} <span class="text-danger">*</span>
-            {{ form.nombres_cli }}
-            {% if form.nombres_cli.errors %}
-              <div class="alert alert-danger mt-1 py-1">{{ form.nombres_cli.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="col-md-6 mb-3">
-            {{ form.apellidos_cli.label_tag }} <span class="text-danger">*</span>
-            {{ form.apellidos_cli }}
-            {% if form.apellidos_cli.errors %}
-              <div class="alert alert-danger mt-1 py-1">{{ form.apellidos_cli.errors }}</div>
-            {% endif %}
-          </div>
+        <!-- Medidor de contraseña -->
+        <div class="progress mt-2">
+          <div id="passwordStrength" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
+               aria-valuemin="0" aria-valuemax="100"></div>
         </div>
 
-        <!--EMAIL-->
-        <div class="mb-3">
-          {{ form.email_cli.label_tag }} <span class="text-danger">*</span>
-          {{ form.email_cli }}
-          {% if form.email_cli.errors %}
-            <div class="alert alert-danger mt-1 py-1">{{ form.email_cli.errors }}</div>
-          {% endif %}
-        </div>
-
-        <!--NUMERO-->
-        <div class="mb-3">
-          {{ form.numero_cli.label_tag }} <span class="text-danger">*</span>
-          <div class="input-group">
-            <span class="input-group-text">+569</span>
-            {{ form.numero_cli }}
-          </div>
-          {% if form.numero_cli.errors %}
-            <div class="alert alert-danger mt-1 py-1">{{ form.numero_cli.errors }}</div>
-          {% endif %}
-        </div>
-
-        <!--CONTRASEÑA-->
-        <div class="mb-3">
-          {{ form.password_cli.label_tag }} <span class="text-danger">*</span>
-          {{ form.password_cli }}
-          {% if form.password_cli.errors %}
-            <div class="alert alert-danger mt-1 py-1">{{ form.password_cli.errors }}</div>
-          {% endif %}
-        </div>
-
-        <!--BOTÓN PARA ENVIAR FORMULARIO-->
-        <button type="submit" class="btn btn-primary w-100">Registrar</button>
+        <button type="submit" class="btn btn-primary w-100 mt-3">Registrar</button>
         <a href="{% url 'login' %}" class="btn btn-outline-secondary w-100 mt-2">¿Ya tienes cuenta? Inicia sesión</a>
       </form>
     </div>
   </div>
+
+  <script>
+    const passwordInput = document.getElementById("id_password_cli");
+    const strengthBar = document.getElementById("passwordStrength");
+
+    passwordInput.addEventListener("input", () => {
+      const val = passwordInput.value;
+      let strength = 0;
+      if (val.length >= 8) strength += 25;
+      if (/[A-Z]/.test(val)) strength += 25;
+      if (/[a-z]/.test(val)) strength += 25;
+      if (/[0-9]/.test(val)) strength += 25;
+
+      strengthBar.style.width = strength + "%";
+      strengthBar.className = "progress-bar";
+      if (strength < 50) strengthBar.classList.add("bg-danger");
+      else if (strength < 75) strengthBar.classList.add("bg-warning");
+      else strengthBar.classList.add("bg-success");
+    });
+  </script>
 {% endblock %}

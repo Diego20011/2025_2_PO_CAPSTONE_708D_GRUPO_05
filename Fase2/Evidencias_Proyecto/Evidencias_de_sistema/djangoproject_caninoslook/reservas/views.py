@@ -1,30 +1,111 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
+from django.db import IntegrityError, transaction
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from functools import wraps
+
 from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
-from django.db import IntegrityError, transaction #Para manejar errores, Para atomic transaction.
-from django.core.exceptions import ValidationError #Para manejar errores.
-from django.db.models import Q #Para poner condiciones OR (|) y AND (&) en las consultas de filter.
 
-# Registro de cliente
+# ==========================
+# Constantes
+# ==========================
+DURACIONES = {
+    'Baño': timedelta(minutes=45),
+    'Corte': timedelta(hours=2),
+    'Corte y baño': timedelta(hours=2, minutes=45),
+    'Baño + Uñas': timedelta(hours=1),
+    'Baño + Oidos': timedelta(hours=1),
+    'Baño + Uñas y oidos': timedelta(hours=1),
+    'Corte + Uñas': timedelta(hours=2, minutes=15),
+    'Corte + Oidos': timedelta(hours=2, minutes=15),
+    'Corte + Uñas y oidos': timedelta(hours=2, minutes=15),
+    'Corte y baño + Uñas y oidos': timedelta(hours=3),
+    'Corte y baño + Uñas': timedelta(hours=3),
+    'Corte y baño + Oidos': timedelta(hours=3),
+    'Uñas y oidos': timedelta(minutes=15),
+    'Uñas': timedelta(minutes=15),
+    'Oidos': timedelta(minutes=15),
+}
+
+PRECIOS = {
+    'Pequeño': 20000,
+    'Mediano': 25000,
+    'Grande': 30000,
+}
+
+SERVICIOS_VALIDOS = {
+    "Corte": "Corte de pelo",
+    "Baño": "Baño",
+    "Corte y baño": "Estética full",
+    "Uñas": "Corte de uñas",
+    "Oidos": "Limpieza de oídos",
+    "Uñas y oidos": "Cuidados Full"
+}
+
+# ==========================
+# Decorador para login
+# ==========================
+def requiere_login(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.session.get("cliente_id"):
+            return redirect("login")
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+# ==========================
+# Función auxiliar
+# ==========================
+def calcular_horas_disponibles(servicioConcat, reservas_existentes):
+    lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 15, 30, 45)]
+    lista_horas_full.append("18:00:00")
+    horas_disponibles = []
+
+    if reservas_existentes.exists():
+        for reserva in reservas_existentes:
+            duracion = DURACIONES.get(reserva.servicio_res)
+            if not duracion:
+                continue
+            bloque = int(duracion.total_seconds() / 900)
+            try:
+                idx = lista_horas_full.index(reserva.hora_res.strftime("%H:%M:%S"))
+                del lista_horas_full[idx:idx + bloque]
+            except ValueError:
+                continue
+
+    duracion = DURACIONES.get(servicioConcat)
+    if duracion:
+        bloques = int(duracion.total_seconds() / 900)
+        for i in range(len(lista_horas_full) - bloques):
+            inicio = datetime.strptime(lista_horas_full[i], "%H:%M:%S")
+            if all((inicio + timedelta(minutes=15 * j)).strftime("%H:%M:%S") == lista_horas_full[i + j] for j in range(1, bloques)):
+                horas_disponibles.append(lista_horas_full[i])
+
+    return horas_disponibles or lista_horas_full
+
+# ==========================
+# Vistas
+# ==========================
+
 def registrar_cliente(request):
     form = RegistroDeClienteForm(request.POST or None)
-    if request.method == "POST":
-        if form.is_valid():
-            cliente = form.save(commit=False)
-            cliente.password_cli = make_password(form.cleaned_data["password_cli"])
-            cliente.save()
-            messages.success(request, "¡Cuenta creada con éxito! ✅")
-            return redirect("login")
+    if request.method == "POST" and form.is_valid():
+        cliente = form.save(commit=False)
+        cliente.password_cli = make_password(form.cleaned_data["password_cli"])
+        cliente.save()
+        messages.success(request, "¡Cuenta creada con éxito! ✅")
+        return redirect("login")
     return render(request, "reservas/registro.html", {"form": form})
 
-# Login de cliente
 def login_cliente(request):
     if request.session.get("cliente_id"):
         return redirect("home")
+
     if request.method == "POST":
         ident = (request.POST.get("user_or_email") or "").strip()
         password = request.POST.get("password") or ""
@@ -38,24 +119,53 @@ def login_cliente(request):
         if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
-            messages.success(request, f"Bienvenido, {cli.nombres_cli}!")
+            messages.success(request, f"Bienvenido, {cli.nombres_cli}! 👋")
             return redirect("home")
         else:
             messages.error(request, "Contraseña incorrecta.")
     return render(request, "reservas/login.html")
 
-# Registro de canino
+@requiere_login
 def registrar_canino(request):
-    form = RegistroDeCaninoForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        canino = form.save(commit=False)
-        canino.cliente_id_can_id = request.session.get('cliente_id')
-        canino.save()
-        messages.success(request, "Mascota registrada correctamente.")
-        return redirect("reservar_hora")
-    return render(request, "reservas/reg_perro.html", {"form": form})
+    cliente_id = request.session["cliente_id"]
+    editar_id = request.GET.get("editar")
+    canino = None
 
-# Home
+    if editar_id:
+        canino = get_object_or_404(Canino, pk=editar_id, cliente_id_can_id=cliente_id)
+
+    form = RegistroDeCaninoForm(request.POST or None, instance=canino)
+    if request.method == "POST" and form.is_valid():
+        nuevo_canino = form.save(commit=False)
+        nuevo_canino.cliente_id_can_id = cliente_id
+        nuevo_canino.save()
+        messages.success(request, "Mascota guardada correctamente ✅")
+        return redirect("home")
+
+    return render(request, "reservas/reg_perro.html", {"form": form, "canino": canino})
+
+@requiere_login
+def eliminar_mascota(request, pk):
+    cliente_id = request.session["cliente_id"]
+    canino = get_object_or_404(Canino, pk=pk, cliente_id_can_id=cliente_id)
+    tiene_reservas_futuras = Reserva.objects.filter(
+        canino_id_res_id=canino.pk,
+        fecha_res__gte=timezone.localdate()
+    ).exists()
+
+    if request.method == "POST":
+        if tiene_reservas_futuras:
+            messages.error(request, "No puedes eliminar esta mascota: tiene reservas futuras.")
+        else:
+            canino.delete()
+            messages.success(request, "Mascota eliminada correctamente ✅")
+        return redirect("home")
+
+    return render(request, "reservas/eliminar_mascota.html", {
+        "canino": canino,
+        "tiene_reservas_futuras": tiene_reservas_futuras
+    })
+
 def home(request):
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
@@ -66,293 +176,182 @@ def home(request):
         fecha_res__gte=timezone.localdate()
     ).order_by("fecha_res")
 
-    cliente = Cliente.objects.get(pk=cliente_id)
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    reserva_id = request.session.pop("ultima_reserva_id", None)
+    ultima_reserva = Reserva.objects.filter(pk=reserva_id, cliente_id_res_id=cliente_id).first() if reserva_id else None
+    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id).order_by("nombre_can")
+
 
     return render(request, "reservas/home.html", {
         "reservas": reservas,
-        "cliente": cliente
+        "cliente": cliente,
+        "mascotas": mascotas,
+        "ultima_reserva": ultima_reserva,
     })
 
-# Reserva de hora
-#FALTA CORREGIR QUE CUANDO PONEN EL MISMO DÍA OMITA LAS HORAS QUE YA NO SE PUEDEN, lo mismo para las fechas, que no se pueda poner una fecha antigua para reservar.
-def reserva(request):
-    cliente_id = request.session.get("cliente_id")
-    if not cliente_id:
-        return redirect("login")
 
+@requiere_login
+def reserva(request):
+    cliente_id = request.session["cliente_id"]
     perros_cli = Canino.objects.filter(cliente_id_can_id=cliente_id)
     if not perros_cli.exists():
         messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
         return redirect("registrar_perro")
 
     servSelecc = request.GET.get("servicio")
-    if servSelecc not in ["Corte y baño", "Corte", "Baño", None, ""]: #Para validar servicio seleccionado.
-        messages.error(request, "Error, no existe el servicio principal.")
-        servSelecc = None
     servSelecc2 = request.GET.get("servicio2")
-    if servSelecc2 not in ["Uñas y oidos", "Uñas", "Oidos", None, ""]: #Para validar servicio seleccionado.
-        messages.error(request, "Error, no existe el servicio complementario.")
-        servSelecc2 = None
-
-    diccionario_servicios = {
-    "Corte": "Corte de pelo",
-    "Baño": "Baño",
-    "Corte y baño": "Estética full",
-    "Uñas": "Corte de uñas",
-    "Oidos": "Limpieza de oídos",
-    "Uñas y oidos": "Cuidados Full"}
-
-    diccionario_serv1 = (diccionario_servicios.get(servSelecc)) or ""
-    diccionario_serv2 = (diccionario_servicios.get(servSelecc2)) or ""
-    
-    if servSelecc and servSelecc2:
-        servicioConcat = f"{servSelecc} + {servSelecc2}"
-    else:
-        servicioConcat = servSelecc or servSelecc2 or ""
-    #print(servicioConcat)
-
     fechaDeseada = request.GET.get("fecha_reserva")
-    fechaD_formateada = "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else ""
-    res_x_fecha = Reserva.objects.filter(fecha_res=fechaDeseada).order_by("hora_res")
-    lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 15, 30, 45)]
-    lista_horas_full.append("18:00:00")
-    horasD_baño, horasD_corte, horasD_FE, horasD_BCC, horasD_CCC, horasD_FECC, horasD_CC = [], [], [], [], [], [], []
 
-    if res_x_fecha.exists() and (servSelecc or servSelecc2):
-        i, c = 0, 0
-        while i < len(lista_horas_full) and c < len(res_x_fecha):
-            while lista_horas_full[i] == res_x_fecha[c].hora_res.strftime("%H:%M:%S"):
-                #Baño 45min
-                if res_x_fecha[c].servicio_res == "Baño":
-                    del lista_horas_full[i:i+3] #i:i+3 Elimina el actual y 2 más.
-                #Corte 2horas
-                elif res_x_fecha[c].servicio_res == "Corte":
-                    del lista_horas_full[i:i+8]
-                #Full estética 2horas y 45min
-                elif res_x_fecha[c].servicio_res == "Corte y baño":
-                    del lista_horas_full[i:i+11]
-                #Baño + cuidados complementarios 1hora
-                elif res_x_fecha[c].servicio_res in ["Baño + Uñas", "Baño + Oidos", "Baño + Uñas y oidos"]:
-                    del lista_horas_full[i:i+4]
-                #Corte + cuidados complementarios 2horas y 15min
-                elif res_x_fecha[c].servicio_res in ["Corte + Uñas", "Corte + Oidos", "Corte + Uñas y oidos"]:
-                    del lista_horas_full[i:i+9]
-                #Full estética + cuidados complementarios 3horas
-                elif res_x_fecha[c].servicio_res in ["Corte y baño + Uñas y oidos", "Corte y baño + Uñas", "Corte y baño + Oidos"]:
-                    del lista_horas_full[i:i+12]
-                #Cuidados complementarios por si solos o juntos 15min
-                elif res_x_fecha[c].servicio_res in ["Uñas y oidos", "Uñas", "Oidos"]:
-                    del lista_horas_full[i]
-                c += 1
-                if c >= len(res_x_fecha):
-                    break
-            i += 1
-        #print(lista_horas_full)
-        #print(servicioConcat)
-        if servicioConcat == "Baño":
-            for q2 in range(len(lista_horas_full) - 3): #Baño 45min
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 3)):
-                    horasD_baño.append(lista_horas_full[q2])
-        if servicioConcat == "Corte":
-            for q2 in range(len(lista_horas_full) - 8): #Corte 2horas
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 8)):
-                    horasD_corte.append(lista_horas_full[q2])
-        if servicioConcat == "Corte y baño": #Full estética 2horas y 45min
-            for q2 in range(len(lista_horas_full) - 11): 
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 11)):
-                    horasD_FE.append(lista_horas_full[q2])
-        if servicioConcat in ["Baño + Uñas", "Baño + Oidos", "Baño + Uñas y oidos"]: #Baño + cuidados complementarios 1hora
-            for q2 in range(len(lista_horas_full) - 4): 
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 4)):
-                    horasD_BCC.append(lista_horas_full[q2])
-        if servicioConcat in ["Corte + Uñas", "Corte + Oidos", "Corte + Uñas y oidos"]: #Corte + cuidados complementarios 2horas y 15min
-            for q2 in range(len(lista_horas_full) - 9): 
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 9)):
-                    horasD_CCC.append(lista_horas_full[q2])
-        if servicioConcat in ["Corte y baño + Uñas y oidos", "Corte y baño + Uñas", "Corte y baño + Oidos"]: #Full estética + cuidados complementarios 3horas
-            for q2 in range(len(lista_horas_full) - 12):
-                if all((datetime.strptime(lista_horas_full[q2], "%H:%M:%S") + timedelta(minutes=15 * i)).strftime("%H:%M:%S") == lista_horas_full[q2 + i] for i in range(1, 12)):
-                    horasD_FECC.append(lista_horas_full[q2])
-        if servicioConcat in ["Uñas y oidos", "Uñas", "Oidos"]:
-            horasD_CC = lista_horas_full[:-1]
-    else:
-        #Limite para toma de hora para cada servicio si no hay reservas existentes el día que seleccione el usuario.
-        horasD_baño = lista_horas_full[:34]
-        horasD_corte = lista_horas_full[:29]
-        horasD_FE = lista_horas_full[:26]
-        horasD_BCC = lista_horas_full[:33]
-        horasD_CCC = lista_horas_full[:28]
-        horasD_FECC = lista_horas_full[:25]
-        horasD_CC = lista_horas_full[:36]
+    servicioConcat = " + ".join(filter(None, [servSelecc, servSelecc2]))
+    reservas_existentes = Reserva.objects.filter(fecha_res=fechaDeseada) if fechaDeseada else Reserva.objects.none()
+    horas_disponibles = calcular_horas_disponibles(servicioConcat, reservas_existentes)
 
-    if request.method == "POST" and "reservar_hora" in request.POST: #reservar_hora es el name del <button>Confirmar reserva</button>
-        #Precios, estos representan los precios base por tamaño de perro.
-        perroReserva = Canino.objects.get(pk=request.POST.get("perro"))
-        if perroReserva.tamano_can == "Pequeño":
-            valor_res = 20000
-        elif perroReserva.tamano_can == "Mediano":
-            valor_res = 25000
-        elif perroReserva.tamano_can == "Grande":
-            valor_res = 30000
+    paso1display = 1
+    if request.GET.get("continuar") == "1" and (servSelecc or servSelecc2) and fechaDeseada:
+        paso1display = 0
+    if request.GET.get("volver") == "1":
+        paso1display = 1
 
-        DURACIONES = {
-            'Baño': timedelta(minutes=45),
-            'Corte': timedelta(hours=2),
-            'Corte y baño': timedelta(hours=2, minutes=45),
-            'Baño + Uñas': timedelta(hours=1),
-            'Baño + Oidos': timedelta(hours=1),
-            'Baño + Uñas y oidos': timedelta(hours=1),
-            'Corte + Uñas': timedelta(hours=2, minutes=15),
-            'Corte + Oidos': timedelta(hours=2, minutes=15),
-            'Corte + Uñas y oidos': timedelta(hours=2, minutes=15),
-            'Corte y baño + Uñas y oidos': timedelta(hours=3),
-            'Corte y baño + Uñas': timedelta(hours=3),
-            'Corte y baño + Oidos': timedelta(hours=3),
-            'Uñas y oidos': timedelta(minutes=15),
-            'Uñas': timedelta(minutes=15),
-            'Oidos': timedelta(minutes=15),}
-        inicio_nueva = datetime.combine(datetime.strptime(request.POST.get("fecha_reserva"), "%Y-%m-%d").date(), datetime.strptime(request.POST.get("hora"), "%H:%M:%S").time())
-        duracion = DURACIONES.get(request.POST.get("servicio"))
+    if request.method == "POST" and "reservar_hora" in request.POST:
+        servicio = (request.POST.get("servicio") or "").strip()
+        fecha_str = request.POST.get("fecha_reserva")
+        hora_str = request.POST.get("hora")
+        perro_id = request.POST.get("perro")
+
+        if not servicio or not fecha_str or not hora_str or not perro_id:
+            messages.error(request, "Todos los campos son obligatorios.")
+            return redirect("reservar_hora")
+        try:
+            fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+            hora_dt = datetime.strptime(hora_str, "%H:%M:%S").time()
+        except ValueError:
+            messages.error(request, "Formato de fecha u hora inválido.")
+            return redirect("reservar_hora")
+
+        perroReserva = get_object_or_404(Canino, pk=perro_id)
+        valor_res = PRECIOS.get(perroReserva.tamano_can, 20000)
+        duracion = DURACIONES.get(servicio)
+
+        if not duracion:
+            messages.error(request, "Servicio inválido.")
+            return redirect("reservar_hora")
+
+        # Validación de duplicado: misma mascota, mismo servicio, misma fecha
+        if Reserva.objects.filter(
+            canino_id_res_id=perro_id,
+            servicio_res=servicio,
+            fecha_res=fecha_dt
+        ).exists():
+            messages.warning(request, f"Ya existe una reserva de '{servicio}' para esa mascota en {fecha_dt}.")
+            return redirect("ver_reservas")
+
+        inicio_nueva = datetime.combine(fecha_dt, hora_dt)
         fin_nueva = inicio_nueva + duracion
 
-        #SOLUCIÓN RESERVAS CONCURRENTES.
         try:
-        #atomic() agrupa todas las consultas en un bloque “todo o nada”, si todo sale bien se aplican los cambios, sino, no.
-        #Atomicidad:
-        #Todo lo que ocurre dentro se ejecuta como una sola unidad.
-        #Si algo falla (excepción, error, etc.), se revierte todo — como si no hubiera pasado nada.
+            with transaction.atomic():
+                reservas_withAtomic = Reserva.objects.select_for_update().filter(fecha_res=fecha_dt)
+                for r in reservas_withAtomic:
+                    inicio_existente = datetime.combine(r.fecha_res, r.hora_res)
+                    fin_existente = inicio_existente + DURACIONES.get(r.servicio_res, timedelta())
+                    if inicio_nueva < fin_existente and fin_nueva > inicio_existente:
+                        raise ValidationError("😔 Esa hora ya fue reservada. Elige otra.")
 
-        #Aislamiento temporal:
-        #Ningún otro proceso ve tus cambios hasta que la transacción termina exitosamente (commit).
+                reserva_nueva = Reserva.objects.create(
+                    servicio_res=servicio,
+                    hora_res=hora_dt,
+                    fecha_res=fecha_dt,
+                    medio_pago_res="Efectivo",
+                    valor_res=valor_res,
+                    confirm_pago_res=False,
+                    cliente_id_res_id=cliente_id,
+                    canino_id_res_id=perro_id,
+                )
+                messages.success(request, "✅ Reserva creada correctamente")
+                request.session["ultima_reserva_id"] = reserva_nueva.pk
+                return redirect("home")
 
-            with transaction.atomic(): #Permite utilizar select_for_update() que bloquea la lectura y escritura de las filas de la consulta hasta que se complete la transacción.
-                # Obtenemos las reservas actuales con select_for_update.
-                reservas_withAtomic = Reserva.objects.select_for_update().filter(fecha_res=request.POST.get("fecha_reserva"))
-                #Explicación de comportamiento select_for_update() con 2 reservas concurrentes:
-                #2 personas entran a reservar, reservan al mismo tiempo, el que llega primero a la bd es el que bloquea las consultas de lectura y escritura
-                #de las filas de la consulta reservas_withAtomic, esto seguirá así hasta terminar de ejecutar el código dentro de with transaction.atomic():
-                #Entonces, para la segunda persona habrá un delay o espera de 1 segundo más o menos mientras se ejecuta el código de la primera persona, ¿porque?
-                #porque la consulta involucra las mismas líneas, entonces debe esperar ya que estan bloqueadas.
-                #cuando se termina de ejecutar el código de with transaction.atomic(): de la 1era persona 
-                #se ejecuta la consulta de la 2da persona que estaba esperando, con la diferencia que ahora en la consulta apareceran las filas que agrego A.
-                #luego se ejecuta la lógica anti superposición de horas y si hay error lo lanza.
-                if reservas_withAtomic:
-                    for reserva in reservas_withAtomic:
-                        inicio_existente = datetime.combine(reserva.fecha_res, reserva.hora_res)
-                        duracion_existente = DURACIONES.get(reserva.servicio_res)
-                        fin_existente = inicio_existente + duracion_existente
-                        # Comprobación de superposición.
-                        if inicio_nueva < fin_existente and fin_nueva > inicio_existente:
-                            raise ValidationError("😔 Esa hora ya fue reservada. Elige otra. vale?")
+        except ValidationError as e:
+            messages.error(request, e.message)
+        except IntegrityError:
+            messages.error(request, "💻💥 Error inesperado. Intenta de nuevo.")
 
-                    #Crear reserva nueva.
-                    reserva_nueva = Reserva.objects.create(
-                        servicio_res=request.POST.get("servicio"),
-                        hora_res=datetime.strptime(request.POST.get("hora"), "%H:%M:%S").time(),
-                        fecha_res=datetime.strptime(request.POST.get("fecha_reserva"), "%Y-%m-%d").date(),
-                        medio_pago_res="Efectivo",
-                        valor_res=valor_res,
-                        confirm_pago_res=0,
-                        cliente_id_res_id=cliente_id,
-                        canino_id_res_id=request.POST.get("perro"),
-                    )
-                    messages.success(request, "✅ Reserva creada correctamente")
-                    request.session["ultima_reserva_id"] = reserva_nueva.pk
-                else:
-                    reserva_nueva = Reserva.objects.create(
-                        servicio_res=request.POST.get("servicio"),
-                        hora_res=request.POST.get("hora"),
-                        fecha_res=request.POST.get("fecha_reserva"),
-                        medio_pago_res="Efectivo",
-                        valor_res=valor_res,
-                        confirm_pago_res=0,
-                        cliente_id_res_id=cliente_id,
-                        canino_id_res_id=request.POST.get("perro"),
-                    )
-                    messages.success(request, "✅ Reserva creada correctamente")
-                    request.session["ultima_reserva_id"] = reserva_nueva.pk
-
-        except IntegrityError as e:
-            if "unique_fecha_hora" in str(e):
-                messages.error(request, "😔 Esa hora ya fue reservada. Elige otra.")
-                #print("error:", e)
-            else:
-                messages.error(request, "💻💥 Error inesperado. Intenta recargar la página o abrir el enlace en otra pestaña.")
-                #print("error:", e)
-        except ValidationError as ve:
-            messages.error(request, ve.message)
-    
-    #Para mostrar campos del primer form donde selecciona servicio y fecha. Esto con la finalidad de que el usuario pueda cambiar el servicio luego de haber avanzado en los pasos.
-    #Ya que, si avanza en los pasos, aunque cambie el servicio en la parte de arriba, no se cambiará.
-    paso1display = 1
-    continuar = request.GET.get("continuar")
-    volver = request.GET.get("volver")
-    if (servSelecc or servSelecc2) and fechaDeseada and continuar == "1":
-        paso1display = 0
-        #print(servSelecc)
-    if volver == "1":
-        paso1display = 1
-    
     return render(request, "reservas/reserva.html", {
-        "res_x_fecha": res_x_fecha,
+        "res_x_fecha": reservas_existentes,
         "fechaDeseada": fechaDeseada,
-        "fechaD_formateada": fechaD_formateada,
         "servSelecc": servSelecc,
         "servSelecc2": servSelecc2,
-        "diccionario_serv1": diccionario_serv1,
-        "diccionario_serv2": diccionario_serv2,
-        "horasD_baño": horasD_baño,
-        "horasD_corte": horasD_corte,
-        "horasD_FE": horasD_FE,
-        "horasD_BCC": horasD_BCC,
-        "horasD_CCC": horasD_CCC,
-        "horasD_FECC": horasD_FECC,
-        "horasD_CC": horasD_CC,
-        "perros_cli": perros_cli,
         "servicioConcat": servicioConcat,
-        "paso1display": paso1display
+        "horas_disponibles": horas_disponibles,
+        "perros_cli": perros_cli,
+        "paso1display": paso1display,
+        "diccionario_serv1": SERVICIOS_VALIDOS.get(servSelecc, ""),
+        "diccionario_serv2": SERVICIOS_VALIDOS.get(servSelecc2, ""),
+        "fechaD_formateada": "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else "",
     })
 
-# Ver reservas
+@requiere_login
 def ver_reservas(request):
-    cliente_id = request.session.get("cliente_id")
-    if not cliente_id:
-        return redirect("login")
-
+    cliente_id = request.session["cliente_id"]
     fechaActual = timezone.localtime().date()
     horaActual = timezone.localtime().time()
 
     reservasACancelar = Reserva.objects.filter(
-        Q(fecha_res__gt=fechaActual) | #gt=greather than, e=equal, Q es una libreria para | &.
-        Q(fecha_res=fechaActual, hora_res__gte=horaActual), #fecha_res sea igual a fechaActual y hora_res sea mayor o igual que horaActual
+        Q(fecha_res__gt=fechaActual) |
+        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
         cliente_id_res_id=cliente_id
     ).order_by("fecha_res", "hora_res")
 
-    #Eliminando reserva.
     if request.method == "POST" and "cancelar_reserva" in request.POST:
-        Reserva.objects.filter(pk=request.POST.get("reserva_id")).delete()
+        reserva = get_object_or_404(Reserva, pk=request.POST.get("reserva_id"), cliente_id_res_id=cliente_id)
+        reserva.delete()
+        messages.success(request, "Reserva cancelada correctamente ✅")
 
-    ultima_reserva = None
     reserva_id = request.session.pop("ultima_reserva_id", None)
-    if reserva_id:
-        try:
-            ultima_reserva = Reserva.objects.get(pk=reserva_id, cliente_id_res_id=cliente_id)
-        except Reserva.DoesNotExist:
-            ultima_reserva = None
+    ultima_reserva = Reserva.objects.filter(pk=reserva_id, cliente_id_res_id=cliente_id).first() if reserva_id else None
 
     return render(request, "reservas/ver_reservas.html", {
         "reservasACancelar": reservasACancelar,
         "ultima_reserva": ultima_reserva,
     })
 
-from django.utils import timezone
-
 def servicios(request):
     today = timezone.localdate().strftime("%Y-%m-%d")
     return render(request, 'reservas/servicios.html', {"today": today})
 
-# Logout
 def logout_cliente(request):
     request.session.flush()
-    messages.success(request, "Has cerrado sesión correctamente.")
-    return redirect("login")
+    messages.success(request, "Has cerrado sesión correctamente ✅")
+    return redirect("home")
+
+@requiere_login
+def mis_mascotas(request):
+    cliente_id = request.session["cliente_id"]
+    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id).order_by("nombre_can")
+    return render(request, "reservas/mis_mascotas.html", {"mascotas": mascotas})
+
+@requiere_login
+def editar_mascota(request, pk):
+    cliente_id = request.session["cliente_id"]
+    canino = get_object_or_404(Canino, pk=pk, cliente_id_can_id=cliente_id)
+    form = RegistroDeCaninoForm(request.POST or None, instance=canino)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Mascota actualizada correctamente ✅")
+        return redirect("mis_mascotas")
+
+    return render(request, "reservas/editar_mascota.html", {"form": form, "canino": canino})
+
+@requiere_login
+def historial_reservas(request):
+    cliente_id = request.session["cliente_id"]
+    fechaActual = timezone.localdate()
+    reservas_pasadas = Reserva.objects.filter(
+        cliente_id_res_id=cliente_id,
+        fecha_res__lt=fechaActual
+    ).order_by("-fecha_res", "-hora_res")
+
+    return render(request, "reservas/historial_reservas.html", {
+        "reservas_pasadas": reservas_pasadas
+    })

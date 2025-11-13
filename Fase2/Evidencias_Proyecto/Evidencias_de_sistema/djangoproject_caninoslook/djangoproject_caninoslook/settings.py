@@ -23,7 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = 'django-insecure-u3xt0e!o&h+z@t+!m@p@v%$n7n+zjz$1m$1m@p@v%$n7n+zjz$1m'
+
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Importante: Render siempre guarda las variables como string, así que en tu settings.py debes convertirla a booleano.
@@ -83,10 +85,11 @@ WSGI_APPLICATION = 'djangoproject_caninoslook.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
+        default='mysql://root:caninoslook@localhost:3306/caninoslook',
         conn_max_age=600
     )
 }
+
 
 
 # Password validation

@@ -1,28 +1,73 @@
 {% extends "reservas/base.html" %}
 {% block title %}Inicio - CaninosLook{% endblock %}
 {% block content %}
+
+  {# Banner de confirmación de última reserva #}
+  {% if ultima_reserva %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      ✅ <strong>Reserva confirmada:</strong> {{ ultima_reserva.servicio_res }} el {{ ultima_reserva.fecha_res }} a las {{ ultima_reserva.hora_res }} para {{ ultima_reserva.canino_id_res.nombre_can }}.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  {% endif %}
+  {# Reservas futuras #}
   {% if reservas %}
-    <p>🗓️ Próximas reservas de {{ cliente.nombres_cli }}.</p>
+    <h3 class="mb-4">🗓️ Próximas reservas de {{ cliente.nombres_cli }}</h3>
     {% for f in reservas %}
-      <div class="border rounded p-3 mb-3 bg-light">
-        <p><strong>Servicio:</strong> {{ f.servicio_res }}</p>
-        <p><strong>Perro:</strong> {{ f.canino_id_res.nombre_can }}</p>
-        <p><strong>Fecha:</strong> {{ f.fecha_res }}</p>
-        <p><strong>Hora:</strong> {{ f.hora_res }}</p>
-        <p><strong>Medio de pago:</strong> {{ f.medio_pago_res }}</p>
-        <p><strong>Valor:</strong> ${{ f.valor_res }}</p>
-        <p><strong>Estado de pago:</strong>
-          {% if f.confirm_pago_res == 0 %}
-            <span class="text-danger">Sin pagar</span>
-          {% elif f.confirm_pago_res == 1 %}
-            <span class="text-success">Pagado</span>
-          {% endif %}
-        </p>
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ f.servicio_res }}</h5>
+          <p><strong>🐶 Mascota:</strong> {{ f.canino_id_res.nombre_can }}</p>
+          <p><strong>📅 Fecha:</strong> {{ f.fecha_res }} | <strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
+          <p><strong>💳 Medio de pago:</strong> {{ f.medio_pago_res }}</p>
+          <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
+          <p><strong>Estado de pago:</strong>
+            {% if f.confirm_pago_res == 0 %}
+              <span class="badge bg-danger">Sin pagar</span>
+            {% else %}
+              <span class="badge bg-success">Pagado</span>
+            {% endif %}
+          </p>
+        </div>
       </div>
     {% endfor %}
+    <a href="{% url 'reservar_hora' %}" class="btn btn-primary mt-3">Reservar otra hora</a>
+    <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-secondary mt-2">Administrar mascotas</a>
   {% else %}
     <div class="alert alert-info">
       <p>No hay reservas realizadas por {{ request.session.cliente_nombre }}</p>
+      <a href="{% url 'reservar_hora' %}" class="btn btn-outline-primary mt-2">Reservar ahora</a>
     </div>
   {% endif %}
+
+  {# Sección de mascotas #}
+<h3 class="mt-5">🐾 Mis Mascotas</h3>
+{% if mascotas %}
+  <div class="row g-3">
+    {% for m in mascotas %}
+      <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{{ m.nombre_can }}</h5>
+            <p><strong>Raza:</strong> {{ m.raza_can }}</p>
+            <p><strong>Tamaño:</strong> {{ m.tamano_can }}</p>
+            <p><strong>Peso:</strong> {{ m.peso_can }} kg</p>
+
+            <div class="d-flex gap-2">
+              <a href="{% url 'registrar_perro' %}?editar={{ m.pk }}" class="btn btn-outline-secondary btn-sm">Editar</a>
+              <form method="post" action="{% url 'eliminar_mascota' m.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info mt-4">No has registrado mascotas aún.</div>
+  <a href="{% url 'registrar_perro' %}" class="btn btn-primary mt-2">Registrar mascota</a>
+{% endif %}
+
+
 {% endblock %}

@@ -34,8 +34,15 @@
     </button>
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'login'%}">Iniciar sesión</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'crear_cuenta'%}">Crear cuenta</a></li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'login'%}">Iniciar sesión</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'crear_cuenta'%}">Crear cuenta</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'servicios' %}">Servicios</a>
+          </li>
       </ul>
     </div>
   </div>
@@ -119,7 +126,7 @@
       </div>
     </div>
     <div class="text-center mt-5">
-      <a class="btn btn-primary btn-lg" href="/register/">Crear cuenta y agendar</a>
+      <a class="btn btn-primary btn-lg" href="/crear_cuenta/">Crear cuenta y agendar</a>
     </div>
   </div>
 </section>
