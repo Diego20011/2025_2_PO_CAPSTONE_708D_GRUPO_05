@@ -23,4 +23,10 @@ urlpatterns = [
 
     # 📜 Historial de reservas
     path("historial_reservas/", views.historial_reservas, name="historial_reservas"),
+
+    # 🚀 Panel de administración para el dueño de la tienda
+    path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    path("gestionar-productos/", views.gestionar_productos, name="gestionar_productos"),  # Gestionar productos
+    path("ver-estadisticas/", views.ver_estadisticas, name="ver_estadisticas"),  # Ver estadísticas
+    path("configuracion-tienda/", views.configuracion_tienda, name="configuracion_tienda"),  # Configuración de la tienda
 ]

@@ -12,6 +12,7 @@
 <body>
 
   <!-- Navbar -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg" style="background-color: var(--color-primario);">
     <div class="container-fluid">
       <a class="navbar-brand" href="{% url 'home' %}">CaninosLook</a>
@@ -22,34 +23,60 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           {% if request.session.cliente_id %}
-            <li class="nav-item">
-              <span class="nav-link">👋 Hola, {{ request.session.cliente_nombre }}</span>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.path == '/registrar_perro/' %}active{% endif %}" href="{% url 'registrar_perro' %}">Registrar Mascota</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.path == '/reservar_hora/' %}active{% endif %}" href="{% url 'reservar_hora' %}">Reservar Hora</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.path == '/ver_reservas/' %}active{% endif %}" href="{% url 'ver_reservas' %}">Mis Reservas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.path == '/mis_mascotas/' %}active{% endif %}" href="{% url 'mis_mascotas' %}">Mis Mascotas</a>
-            </li>
-
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'logout' %}">Salir</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.path == '/servicios/' %}active{% endif %}" href="{% url 'servicios' %}">Servicios</a>
-            </li>
+            {% if request.session.es_owner %}
+              {# 🔐 MENÚ DEL DUEÑO / ADMIN #}
+              <li class="nav-item">
+                <span class="nav-link">👑 Hola, {{ request.session.cliente_nombre }}</span>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/admin-dashboard/' %}active{% endif %}"
+                   href="{% url 'admin_dashboard' %}">Panel Admin</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Salir</a>
+              </li>
+            {% else %}
+              {# 🐶 MENÚ DEL CLIENTE NORMAL #}
+              <li class="nav-item">
+                <span class="nav-link">👋 Hola, {{ request.session.cliente_nombre }}</span>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/registrar_perro/' %}active{% endif %}"
+                   href="{% url 'registrar_perro' %}">Registrar Mascota</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/reservar_hora/' %}active{% endif %}"
+                   href="{% url 'reservar_hora' %}">Reservar Hora</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/ver_reservas/' %}active{% endif %}"
+                   href="{% url 'ver_reservas' %}">Mis Reservas</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/mis_mascotas/' %}active{% endif %}"
+                   href="{% url 'mis_mascotas' %}">Mis Mascotas</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Salir</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.path == '/servicios/' %}active{% endif %}"
+                   href="{% url 'servicios' %}">Servicios</a>
+              </li>
+            {% endif %}
           {% else %}
+            {# 👤 VISITANTE NO LOGUEADO #}
             <li class="nav-item">
-              <a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="{% url 'login' %}">Iniciar sesión</a>
+              <a class="nav-link {% if request.path == '/login/' %}active{% endif %}"
+                 href="{% url 'login' %}">Iniciar sesión</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if request.path == '/crear_cuenta/' %}active{% endif %}" href="{% url 'crear_cuenta' %}">Crear cuenta</a>
+              <a class="nav-link {% if request.path == '/crear_cuenta/' %}active{% endif %}"
+                 href="{% url 'crear_cuenta' %}">Crear cuenta</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.path == '/servicios/' %}active{% endif %}"
+                 href="{% url 'servicios' %}">Servicios</a>
             </li>
           {% endif %}
         </ul>

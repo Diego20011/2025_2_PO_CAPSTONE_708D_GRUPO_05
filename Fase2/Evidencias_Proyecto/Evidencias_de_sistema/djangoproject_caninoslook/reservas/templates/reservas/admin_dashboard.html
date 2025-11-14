@@ -1,0 +1,89 @@
+{% extends 'reservas/base.html' %}
+
+{% block content %}
+  <h1>Bienvenido al Panel de Administración, {{ cliente.nombres_cli }} {{ cliente.apellidos_cli }} 👑</h1>
+  <h2>Opciones Administrativas</h2>
+
+  <ul>
+    <li><a href="{% url 'ver_reservas' %}">Ver todas las reservas (como cliente)</a></li>
+    <li><a href="{% url 'servicios' %}">Ver servicios</a></li>
+    <li><a href="{% url 'home' %}">Volver al inicio</a></li>
+    <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+  </ul>
+
+  <hr>
+
+  <h3>{{ titulo_reservas }}</h3>
+
+  <!-- Filtros de fecha -->
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <div class="col-auto">
+    <label for="filtro" class="form-label mb-1">Filtrar por</label>
+    <select name="filtro" id="filtro" class="form-select">
+      <option value="hoy" {% if filtro == 'hoy' %}selected{% endif %}>Hoy</option>
+      <option value="manana" {% if filtro == 'manana' %}selected{% endif %}>Mañana</option>
+      <option value="semana" {% if filtro == 'semana' %}selected{% endif %}>Próximos 7 días</option>
+      <option value="todas" {% if filtro == 'todas' %}selected{% endif %}>Todas las reservas</option>
+      <option value="fecha" {% if filtro == 'fecha' %}selected{% endif %}>Fecha específica</option>
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label for="fecha" class="form-label mb-1">Fecha</label>
+    <input
+      type="date"
+      id="fecha"
+      name="fecha"
+      class="form-control"
+      value="{{ fecha_str }}"
+    >
+  </div>
+
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary mt-2">Aplicar</button>
+  </div>
+</form>
+
+  <table class="table table-striped">
+      <thead>
+          <tr>
+              <th>Cliente</th>
+              <th>Canino</th>
+              <th>Servicio</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for r in reservas %}
+              <tr>
+                  <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
+                  <td>{{ r.canino_id_res.nombre_can }}</td>
+                  <td>{{ r.servicio_res }}</td>
+                  <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
+                  <td>{{ r.hora_res|time:"H:i" }}</td>
+              </tr>
+          {% empty %}
+              <tr>
+                  <td colspan="5" class="text-center">No hay reservas para el filtro seleccionado.</td>
+              </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+
+  <!-- Script para habilitar/deshabilitar fecha según filtro -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const selectFiltro = document.getElementById('filtro');
+    const inputFecha = document.getElementById('fecha');
+
+    function toggleFecha() {
+      const esFecha = selectFiltro.value === 'fecha';
+      inputFecha.disabled = !esFecha;
+    }
+
+    selectFiltro.addEventListener('change', toggleFecha);
+    toggleFecha();
+  });
+</script>
+{% endblock %}

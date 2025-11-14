@@ -9,6 +9,8 @@ class Cliente(models.Model):
     email_cli = models.EmailField("Correo electrónico", max_length=70, unique=True, blank=False)
     numero_cli = models.CharField("Número de contacto", max_length=12, blank=False, unique=True)
     password_cli = models.CharField("Contraseña", max_length=128, blank=False)
+    is_owner = models.BooleanField("Es dueño", default=False)
+
 
     class Meta:
         db_table = 'cliente' #Esto le dice a Django el nombre exacto de la tabla que debe usar en la base de datos. por defecto guarda: nombreApp_nombreTabla

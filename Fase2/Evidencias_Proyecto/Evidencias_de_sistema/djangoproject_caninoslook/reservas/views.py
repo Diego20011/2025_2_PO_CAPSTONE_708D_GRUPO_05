@@ -119,8 +119,15 @@ def login_cliente(request):
         if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
+            request.session["es_owner"] = cli.is_owner
+            
+            if cli.is_owner:
+                messages.success(request, f"Bienvenido al panel administrativo, {cli.nombres_cli}! 👑")
+                return redirect("admin_dashboard")
+            
             messages.success(request, f"Bienvenido, {cli.nombres_cli}! 👋")
             return redirect("home")
+        
         else:
             messages.error(request, "Contraseña incorrecta.")
     return render(request, "reservas/login.html")
@@ -354,4 +361,116 @@ def historial_reservas(request):
 
     return render(request, "reservas/historial_reservas.html", {
         "reservas_pasadas": reservas_pasadas
+    })
+
+# views.py
+from django.contrib.auth.decorators import login_required
+
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.contrib import messages
+
+@requiere_login
+def admin_dashboard(request):
+    cliente_id = request.session["cliente_id"]
+    cli = get_object_or_404(Cliente, pk=cliente_id)
+
+    if not getattr(cli, "is_owner", False):
+        messages.error(request, "No tienes permisos para ver esta página.")
+        return redirect("home")
+
+    filtro = request.GET.get("filtro", "hoy")  # 'hoy' por defecto
+    fecha_str = request.GET.get("fecha", "")
+
+    hoy = timezone.localdate()
+
+    # queryset base
+    reservas = Reserva.objects.all().select_related("cliente_id_res", "canino_id_res")
+    titulo_reservas = "Todas las reservas"
+
+    # ---- FILTROS ----
+    if filtro == "hoy":
+        reservas = reservas.filter(fecha_res=hoy)
+        titulo_reservas = "Reservas de hoy"
+
+    elif filtro == "manana":
+        manana = hoy + timedelta(days=1)
+        reservas = reservas.filter(fecha_res=manana)
+        titulo_reservas = "Reservas de mañana"
+
+    elif filtro == "semana":
+        fin_semana = hoy + timedelta(days=7)
+        reservas = reservas.filter(fecha_res__range=(hoy, fin_semana))
+        titulo_reservas = "Reservas próximos 7 días"
+
+    elif filtro == "todas":
+        titulo_reservas = "Todas las reservas"
+
+    elif filtro == "fecha":
+        if fecha_str:
+            # Para DateField Django acepta 'YYYY-MM-DD' directamente, sin parsear
+            reservas = reservas.filter(fecha_res=fecha_str)
+            titulo_reservas = f"Reservas del {fecha_str}"
+        else:
+            reservas = reservas.none()
+            titulo_reservas = "Selecciona una fecha para ver reservas"
+
+    else:
+        # Cualquier cosa rara ⇒ volvemos a hoy
+        reservas = reservas.filter(fecha_res=hoy)
+        titulo_reservas = "Reservas de hoy"
+
+    reservas = reservas.order_by("fecha_res", "hora_res")
+
+    return render(request, "reservas/admin_dashboard.html", {
+        "cliente": cli,
+        "reservas": reservas,
+        "titulo_reservas": titulo_reservas,
+        "filtro": filtro,
+        "fecha_str": fecha_str,
+    })
+
+def gestionar_productos(request):
+    if not request.user.is_owner:
+        return redirect("home")  # Solo los dueños pueden acceder
+    # Lógica para gestionar productos
+    return render(request, 'reservas/gestionar_productos.html')
+
+def ver_estadisticas(request):
+    if not request.user.is_owner:
+        return redirect("home")  # Solo los dueños pueden acceder
+    # Lógica para ver estadísticas (reservas, ventas, etc.)
+    return render(request, 'reservas/ver_estadisticas.html')
+
+def configuracion_tienda(request):
+    if not request.user.is_owner:
+        return redirect("home")  # Solo los dueños pueden acceder
+    # Lógica para configuraciones del sistema
+    return render(request, 'reservas/configuracion_tienda.html')
+
+
+
+# ==========================
+# Panel del dueño / admin
+# ==========================
+
+def es_duenio(cliente: Cliente) -> bool:
+    # 🔁 Ajusta este correo al que quieras usar como dueño
+    return cliente.email_cli.lower() == "diegoassd@gmail.com"
+
+
+@requiere_login
+def admin_dashboard(request):
+    cliente_id = request.session["cliente_id"]
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+
+    if not es_duenio(cliente):
+        messages.error(request, "No tienes permisos para ver esta página.")
+        return redirect("home")
+
+    reservas = Reserva.objects.all().order_by("fecha_res", "hora_res")
+
+    return render(request, "reservas/admin_dashboard.html", {
+        "cliente": cliente,
+        "reservas": reservas,
     })
