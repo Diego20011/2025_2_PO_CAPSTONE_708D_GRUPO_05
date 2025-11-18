@@ -1,24 +1,26 @@
-{% extends "reservas/base.html" %}
-{% block title %}Historial de Reservas - CaninosLook{% endblock %}
+{% extends 'reservas/base.html' %}
+
 {% block content %}
-  <div class="container py-4">
-    <h2 class="mb-4 text-center">📜 Historial de Reservas</h2>
-    {% if reservas_pasadas %}
-      {% for r in reservas_pasadas %}
-        <div class="card mb-3 shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">{{ r.servicio_res }}</h5>
-            <p><strong>🐶 Mascota:</strong> {{ r.canino_id_res.nombre_can }}</p>
-            <p><strong>📅 Fecha:</strong> {{ r.fecha_res }} | <strong>🕒 Hora:</strong> {{ r.hora_res }}</p>
-            <p><strong>💲 Valor:</strong> ${{ r.valor_res }}</p>
-          </div>
+  <h2>📜 Historial de Reservas</h2>
+
+  {% if reservas_pasadas %}
+    {% for r in reservas_pasadas %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ r.servicio_res }}</h5>
+          <p><strong>🐶 Mascota:</strong> {{ r.canino_id_res.nombre_can }}</p>
+          <p><strong>📅 Fecha:</strong> {{ r.fecha_res|date:"d \d\e F \d\e Y" }} | <strong>🕒 Hora:</strong> {{ r.hora_res|time:"H:i" }}</p>
+          <p><strong>💳 Medio de pago:</strong> {{ r.medio_pago_res }}</p>
+          <p><strong>💰 Valor:</strong> ${{ r.valor_res }}</p>
+          <span class="badge bg-success">Pagado</span>
         </div>
-      {% endfor %}
-    {% else %}
-      <div class="alert alert-info text-center">No tienes reservas pasadas registradas.</div>
-    {% endif %}
-    <div class="text-center mt-3">
-      <a href="{% url 'home' %}" class="btn btn-secondary">Volver al inicio</a>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info text-center">
+      No tienes reservas pasadas registradas.
     </div>
-  </div>
+  {% endif %}
+
+  <a href="{% url 'home' %}" class="btn btn-outline-primary mt-3">Volver al inicio</a>
 {% endblock %}

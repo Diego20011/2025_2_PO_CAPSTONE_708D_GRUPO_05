@@ -131,7 +131,7 @@ def login_cliente(request):
         if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
-            request.session["es_owner"] = cli.is_owner
+            request.session["is_owner"] = cli.is_owner
             
             if cli.is_owner:
                 messages.success(request, f"Bienvenido al panel administrativo, {cli.nombres_cli}! 👑")
@@ -366,14 +366,20 @@ def editar_mascota(request, pk):
 def historial_reservas(request):
     cliente_id = request.session["cliente_id"]
     fechaActual = timezone.localdate()
+    horaActual = timezone.localtime().time()
+
     reservas_pasadas = Reserva.objects.filter(
         cliente_id_res_id=cliente_id,
-        fecha_res__lt=fechaActual
+        confirm_pago_res=True,
+        fecha_res__lte=fechaActual  # 👈 incluye hoy completo
     ).order_by("-fecha_res", "-hora_res")
+
 
     return render(request, "reservas/historial_reservas.html", {
         "reservas_pasadas": reservas_pasadas
     })
+
+
 
 # views.py
 from django.contrib.auth.decorators import login_required
@@ -466,7 +472,7 @@ def configuracion_tienda(request):
 # Panel del dueño / admin
 # ==========================
 
-def es_duenio(cliente: Cliente) -> bool:
+##def es_duenio(cliente: Cliente) -> bool:
     # 🔁 Ajusta este correo al que quieras usar como dueño
     return cliente.email_cli.lower() == "diegoassd@gmail.com"
 
@@ -478,9 +484,17 @@ def admin_dashboard(request):
     cliente = get_object_or_404(Cliente, pk=cliente_id)
 
     # usamos tu helper es_duenio() como antes
-    if not es_duenio(cliente):
+    if not cliente.is_owner:
         messages.error(request, "No tienes permisos para ver esta página.")
         return redirect("home")
+    # 👇 Aquí manejamos la cancelación antes de armar los filtros
+    if request.method == "POST" and "cancelar_admin" in request.POST:
+        reserva_id = request.POST.get("reserva_id")
+        reserva = get_object_or_404(Reserva, pk=reserva_id)
+        reserva.delete()
+        messages.success(request, "Reserva cancelada correctamente ✅")
+        return redirect("admin_dashboard")
+    
 
     hoy = timezone.localdate()
 
@@ -526,6 +540,7 @@ def admin_dashboard(request):
         titulo_reservas = "Todas las reservas"
 
     reservas = reservas.order_by("fecha_res", "hora_res")
+    
 
     # ============================================================
     # ==========  BLOQUE DE REPORTES PARA EL ADMIN  ==============

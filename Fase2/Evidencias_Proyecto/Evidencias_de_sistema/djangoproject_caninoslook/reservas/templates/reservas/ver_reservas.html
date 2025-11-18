@@ -12,32 +12,39 @@
         </div>
       {% endif %}
 
-      {% if reservasACancelar %}
-        {% for f in reservasACancelar %}
-          <div class="card mb-3 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">{{ f.servicio_res }}</h5>
-              <p><strong>🐶 Mascota:</strong> {{ f.canino_id_res.nombre_can }}</p>
-              <p><strong>📅 Fecha:</strong> {{ f.fecha_res }} | <strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
-              <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
-              <p><strong>Estado de pago:</strong>
-                {% if f.confirm_pago_res == 0 %}
-                  <span class="badge bg-warning">Pendiente</span>
-                {% else %}
-                  <span class="badge bg-success">Pagado</span>
-                {% endif %}
-              </p>
-              <form method="post" action="{% url 'ver_reservas' %}">
-                {% csrf_token %}
-                <input type="hidden" name="reserva_id" value="{{ f.pk }}">
-                <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Cancelar reserva</button>
-              </form>
-            </div>
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="alert alert-info text-center">No hay reservas registradas a futuro.</div>
-      {% endif %}
+{% if reservasACancelar %}
+  {% for f in reservasACancelar %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">{{ f.servicio_res }}</h5>
+        <p><strong>🐶 Mascota:</strong> {{ f.canino_id_res.nombre_can }}</p>
+        <p><strong>📅 Fecha:</strong> {{ f.fecha_res }} | <strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
+        <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
+        <p><strong>Estado de pago:</strong>
+          {% if f.confirm_pago_res %}
+            <span class="badge bg-success">Pagado</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Pendiente</span>
+          {% endif %}
+        </p>
+
+        {% if not f.confirm_pago_res %}
+          <form method="post" action="{% url 'ver_reservas' %}">
+            {% csrf_token %}
+            <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+            <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Cancelar reserva</button>
+          </form>
+        {% endif %}
+
+        <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-primary btn-sm">Administrar mascotas</a>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info text-center">No hay reservas registradas a futuro.</div>
+{% endif %}
+
+
 <div class="d-flex justify-content-between mt-3">
   <a href="{% url 'historial_reservas' %}" class="btn btn-outline-primary">Ver historial de reservas pasadas</a>
   <a href="{% url 'home' %}" class="btn btn-secondary">Volver al inicio</a>

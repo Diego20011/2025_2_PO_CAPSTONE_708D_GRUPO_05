@@ -158,37 +158,82 @@
 
   <table class="table table-striped">
     <thead>
-        <tr>
-            <th>Cliente</th>
-            <th>Canino</th>
-            <th>Servicio</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Acciones</th>  {# 👈 NUEVA COLUMNA #}
-        </tr>
-    </thead>
-    <tbody>
-        {% for r in reservas %}
-            <tr>
-                <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
-                <td>{{ r.canino_id_res.nombre_can }}</td>
-                <td>{{ r.servicio_res }}</td>
-                <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
-                <td>{{ r.hora_res|time:"H:i" }}</td>
-                <td>
-                    <a href="{% url 'admin_reserva_detalle' r.pk %}" 
-                       class="btn btn-sm btn-outline-primary">
-                       Ver detalle
-                    </a>
-                </td>
-            </tr>
-        {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No hay reservas para el filtro seleccionado.</td>
-            </tr>
-        {% endfor %}
-    </tbody>
+  <tr>
+    <th>Cliente</th>
+    <th>Canino</th>
+    <th>Servicio</th>
+    <th>Fecha</th>
+    <th>Hora</th>
+    <th>Estado</th>  {# 👈 NUEVA COLUMNA #}
+    <th>Acciones</th>
+  </tr>
+</thead>
+
+<tbody>
+  {% for r in reservas %}
+    <tr>
+      <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
+      <td>{{ r.canino_id_res.nombre_can }}</td>
+      <td>{{ r.servicio_res }}</td>
+      <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
+      <td>{{ r.hora_res|time:"H:i" }}</td>
+      <td>
+        {% if r.confirm_pago_res %}
+          <span class="badge bg-success">Pagado</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Pendiente</span>
+        {% endif %}
+      </td>
+      <td>
+  <a href="{% url 'admin_reserva_detalle' r.pk %}" class="btn btn-sm btn-outline-primary">
+    Ver detalle
+  </a>
+
+  <form method="post" action="{% url 'admin_dashboard' %}" class="d-inline ms-1">
+    {% csrf_token %}
+    <input type="hidden" name="reserva_id" value="{{ r.pk }}">
+    <button type="button" class="btn btn-sm btn-outline-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#confirmCancelModal"
+        data-reserva-id="{{ r.pk }}">
+  Cancelar
+</button>
+
+  </form>
+</td>
+
+    </tr>
+  {% empty %}
+    <tr>
+      <td colspan="7" class="text-center">No hay reservas para el filtro seleccionado.</td>
+    </tr>
+  {% endfor %}
+</tbody>
+
 </table>
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmCancelLabel">¿Cancelar reserva?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        Esta acción no se puede deshacer. ¿Estás seguro de cancelar esta reserva?
+      </div>
+      <div class="modal-footer">
+        <form id="cancelForm" method="post" action="{% url 'admin_dashboard' %}">
+          {% csrf_token %}
+          <input type="hidden" name="reserva_id" id="reservaIdInput">
+          <button type="submit" name="cancelar_admin" class="btn btn-danger">Sí, cancelar</button>
+        </form>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
   <!-- Script para habilitar/deshabilitar fecha según filtro -->
@@ -206,4 +251,14 @@
     toggleFecha();
   });
 </script>
+<script>
+  const confirmModal = document.getElementById('confirmCancelModal');
+  confirmModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const reservaId = button.getAttribute('data-reserva-id');
+    const input = confirmModal.querySelector('#reservaIdInput');
+    input.value = reservaId;
+  });
+</script>
+
 {% endblock %}
