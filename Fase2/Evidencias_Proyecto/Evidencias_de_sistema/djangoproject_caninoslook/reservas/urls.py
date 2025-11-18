@@ -29,4 +29,6 @@ urlpatterns = [
     path("gestionar-productos/", views.gestionar_productos, name="gestionar_productos"),  # Gestionar productos
     path("ver-estadisticas/", views.ver_estadisticas, name="ver_estadisticas"),  # Ver estadísticas
     path("configuracion-tienda/", views.configuracion_tienda, name="configuracion_tienda"),  # Configuración de la tienda
+    path("admin/reservas/<int:pk>/", views.admin_reserva_detalle, name="admin_reserva_detalle"),
+
 ]

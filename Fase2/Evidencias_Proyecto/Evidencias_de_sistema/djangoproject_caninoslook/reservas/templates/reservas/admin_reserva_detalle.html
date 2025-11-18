@@ -1,0 +1,108 @@
+{% extends 'reservas/base.html' %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 mb-3">
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary btn-sm">
+      ← Volver al panel
+    </a>
+  </div>
+</div>
+
+<h2>Detalle de la reserva #{{ reserva.pk }}</h2>
+
+<div class="row mt-3">
+  <!-- Datos de la reserva -->
+  <div class="col-md-4 mb-3">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        Datos de la reserva
+      </div>
+      <div class="card-body">
+        <p><strong>Servicio:</strong> {{ reserva.servicio_res }}</p>
+        <p><strong>Fecha:</strong> {{ reserva.fecha_res|date:"d-m-Y" }}</p>
+        <p><strong>Hora:</strong> {{ reserva.hora_res|time:"H:i" }}</p>
+
+        <form method="post" class="mt-2">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label"><strong>Medio de pago:</strong></label>
+            <input type="text"
+                   name="medio_pago_res"
+                   class="form-control"
+                   value="{{ reserva.medio_pago_res }}">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label"><strong>Valor:</strong></label>
+            <input type="number"
+                   name="valor_res"
+                   class="form-control"
+                   min="0"
+                   value="{{ reserva.valor_res }}">
+          </div>
+
+          <p class="mt-2">
+            <strong>Pago confirmado:</strong>
+            {% if reserva.confirm_pago_res %}
+              ✅ Sí
+            {% else %}
+              ❌ No
+            {% endif %}
+          </p>
+
+          <div class="mt-3">
+            <button type="submit"
+                    name="actualizar_precio"
+                    class="btn btn-sm btn-outline-secondary">
+              Actualizar valor / medio de pago
+            </button>
+
+            {% if not reserva.confirm_pago_res %}
+              <button type="submit"
+                      name="confirmar_pago"
+                      class="btn btn-sm btn-success ms-2">
+                Confirmar pago
+              </button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datos del cliente -->
+  <div class="col-md-4 mb-3">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        Datos del cliente
+      </div>
+      <div class="card-body">
+        <p><strong>Nombre:</strong> {{ cliente_res.nombres_cli }} {{ cliente_res.apellidos_cli }}</p>
+        <p><strong>Correo:</strong> {{ cliente_res.email_cli }}</p>
+        <p><strong>Teléfono:</strong> {{ cliente_res.numero_cli }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datos del canino -->
+  <div class="col-md-4 mb-3">
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        Datos del canino
+      </div>
+      <div class="card-body">
+        <p><strong>Nombre:</strong> {{ canino_res.nombre_can }}</p>
+        <p><strong>Raza:</strong> {{ canino_res.raza_can }}</p>
+        <p><strong>Tamaño:</strong> {{ canino_res.tamano_can }}</p>
+        <p><strong>Peso:</strong> {{ canino_res.peso_can }} kg</p>
+        {% if canino_res.cuidados_esp_can %}
+          <p><strong>Cuidados especiales:</strong> {{ canino_res.cuidados_esp_can }}</p>
+        {% else %}
+          <p><strong>Cuidados especiales:</strong> Sin información</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

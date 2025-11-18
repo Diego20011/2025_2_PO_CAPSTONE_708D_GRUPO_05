@@ -5,14 +5,126 @@
   <h2>Opciones Administrativas</h2>
 
   <ul>
-    <li><a href="{% url 'ver_reservas' %}">Ver todas las reservas (como cliente)</a></li>
-    <li><a href="{% url 'servicios' %}">Ver servicios</a></li>
-    <li><a href="{% url 'home' %}">Volver al inicio</a></li>
     <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
   </ul>
 
   <hr>
 
+  {# ===================== REPORTES RÁPIDOS ===================== #}
+  <div class="row mb-4">
+    <!-- Ingresos del mes -->
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-warning">
+          <strong>Ingresos del mes actual</strong>
+        </div>
+        <div class="card-body">
+          <p class="fs-4 mb-0">
+            ${{ ingresos_mes|default:0 }}
+          </p>
+          <small class="text-muted">Solo reservas con pago confirmado</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Razas más concurrentes -->
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-info text-white">
+          <strong>Razas más concurrentes</strong>
+        </div>
+        <div class="card-body p-2">
+          {% if razas_top %}
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Raza</th>
+                  <th class="text-end">Reservas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in razas_top %}
+                  <tr>
+                    <td>{{ r.canino_id_res__raza_can }}</td>
+                    <td class="text-end">{{ r.total }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="mb-0">Aún no hay reservas.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Clientes más concurrentes -->
+    <div class="col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white">
+          <strong>Clientes más concurrentes</strong>
+        </div>
+        <div class="card-body p-2">
+          {% if clientes_top %}
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th class="text-end">Reservas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in clientes_top %}
+                  <tr>
+                    <td>
+                      {{ c.cliente_id_res__nombres_cli }} {{ c.cliente_id_res__apellidos_cli }}
+                    </td>
+                    <td class="text-end">{{ c.total }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="mb-0">Aún no hay reservas.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ================= INGRESOS MENSUALES (TABLA SIMPLE) ================= #}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <strong>Ingresos mensuales (últimos meses)</strong>
+        </div>
+        <div class="card-body p-2">
+          {% if ingresos_por_mes %}
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Mes</th>
+                  <th class="text-end">Ingresos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in ingresos_por_mes %}
+                  <tr>
+                    <td>{{ m.mes|date:"m/Y" }}</td>
+                    <td class="text-end">${{ m.total }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="mb-0">Aún no hay ingresos registrados.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <h3>{{ titulo_reservas }}</h3>
 
   <!-- Filtros de fecha -->
@@ -45,31 +157,39 @@
 </form>
 
   <table class="table table-striped">
-      <thead>
-          <tr>
-              <th>Cliente</th>
-              <th>Canino</th>
-              <th>Servicio</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-          </tr>
-      </thead>
-      <tbody>
-          {% for r in reservas %}
-              <tr>
-                  <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
-                  <td>{{ r.canino_id_res.nombre_can }}</td>
-                  <td>{{ r.servicio_res }}</td>
-                  <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
-                  <td>{{ r.hora_res|time:"H:i" }}</td>
-              </tr>
-          {% empty %}
-              <tr>
-                  <td colspan="5" class="text-center">No hay reservas para el filtro seleccionado.</td>
-              </tr>
-          {% endfor %}
-      </tbody>
-  </table>
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Canino</th>
+            <th>Servicio</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Acciones</th>  {# 👈 NUEVA COLUMNA #}
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in reservas %}
+            <tr>
+                <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
+                <td>{{ r.canino_id_res.nombre_can }}</td>
+                <td>{{ r.servicio_res }}</td>
+                <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
+                <td>{{ r.hora_res|time:"H:i" }}</td>
+                <td>
+                    <a href="{% url 'admin_reserva_detalle' r.pk %}" 
+                       class="btn btn-sm btn-outline-primary">
+                       Ver detalle
+                    </a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No hay reservas para el filtro seleccionado.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
 
   <!-- Script para habilitar/deshabilitar fecha según filtro -->
 <script>

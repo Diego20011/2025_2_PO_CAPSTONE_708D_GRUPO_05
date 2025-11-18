@@ -10,6 +10,9 @@ from functools import wraps
 
 from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncMonth
+
 
 # ==========================
 # Constantes
@@ -97,8 +100,17 @@ def registrar_cliente(request):
     if request.method == "POST" and form.is_valid():
         cliente = form.save(commit=False)
         cliente.password_cli = make_password(form.cleaned_data["password_cli"])
+
+        # 🔑 Si NO existe ningún dueño aún, este será el primero
+        from .models import Cliente  # por si arriba no está importado
+        if not Cliente.objects.filter(is_owner=True).exists():
+            cliente.is_owner = True
+
         cliente.save()
-        messages.success(request, "¡Cuenta creada con éxito! ✅")
+        if cliente.is_owner:
+            messages.success(request, "¡Cuenta creada con éxito! Has sido configurado como administrador de la tienda 👑")
+        else:
+            messages.success(request, "¡Cuenta creada con éxito! ✅")
         return redirect("login")
     return render(request, "reservas/registro.html", {"form": form})
 
@@ -461,16 +473,172 @@ def es_duenio(cliente: Cliente) -> bool:
 
 @requiere_login
 def admin_dashboard(request):
+    # === dueño logueado ===
     cliente_id = request.session["cliente_id"]
     cliente = get_object_or_404(Cliente, pk=cliente_id)
 
+    # usamos tu helper es_duenio() como antes
     if not es_duenio(cliente):
         messages.error(request, "No tienes permisos para ver esta página.")
         return redirect("home")
 
-    reservas = Reserva.objects.all().order_by("fecha_res", "hora_res")
+    hoy = timezone.localdate()
+
+    # ⚠️ por defecto: mostrar TODAS las reservas (como tú tenías)
+    filtro = request.GET.get("filtro", "todas")
+    fecha_str = request.GET.get("fecha", "")
+
+    # queryset base para la tabla
+    reservas_qs = Reserva.objects.select_related("cliente_id_res", "canino_id_res")
+    reservas = reservas_qs
+    titulo_reservas = "Todas las reservas"
+
+    # ========= FILTROS PARA LA TABLA =========
+    if filtro == "hoy":
+        reservas = reservas_qs.filter(fecha_res=hoy)
+        titulo_reservas = "Reservas de hoy"
+
+    elif filtro == "manana":
+        manana = hoy + timedelta(days=1)
+        reservas = reservas_qs.filter(fecha_res=manana)
+        titulo_reservas = "Reservas de mañana"
+
+    elif filtro == "semana":
+        fin_semana = hoy + timedelta(days=7)
+        reservas = reservas_qs.filter(fecha_res__range=(hoy, fin_semana))
+        titulo_reservas = "Reservas próximos 7 días"
+
+    elif filtro == "todas":
+        reservas = reservas_qs
+        titulo_reservas = "Todas las reservas"
+
+    elif filtro == "fecha":
+        if fecha_str:
+            reservas = reservas_qs.filter(fecha_res=fecha_str)
+            titulo_reservas = f"Reservas del {fecha_str}"
+        else:
+            reservas = reservas_qs.none()
+            titulo_reservas = "Selecciona una fecha para ver reservas"
+
+    else:
+        # cualquier cosa rara → nos vamos a todas
+        reservas = reservas_qs
+        titulo_reservas = "Todas las reservas"
+
+    reservas = reservas.order_by("fecha_res", "hora_res")
+
+    # ============================================================
+    # ==========  BLOQUE DE REPORTES PARA EL ADMIN  ==============
+    # ============================================================
+
+    # 1) RAZAS MÁS CONCURRENTES (top 3)
+    razas_top = (
+        Reserva.objects.select_related("canino_id_res")
+        .values("canino_id_res__raza_can")
+        .annotate(total=Count("id_reserva"))
+        .order_by("-total")[:3]
+    )
+
+    # 2) CLIENTES MÁS CONCURRENTES (top 3)
+    clientes_top = (
+        Reserva.objects.select_related("cliente_id_res")
+        .values("cliente_id_res__nombres_cli", "cliente_id_res__apellidos_cli")
+        .annotate(total=Count("id_reserva"))
+        .order_by("-total")[:3]
+    )
+
+    # 3) INGRESOS DEL MES ACTUAL (solo pagadas)
+    inicio_mes = hoy.replace(day=1)
+    ingresos_mes = (
+        Reserva.objects.filter(
+            fecha_res__gte=inicio_mes,
+            fecha_res__lte=hoy,
+            confirm_pago_res=True,
+        ).aggregate(total=Sum("valor_res"))["total"] or 0
+    )
+
+    # 4) INGRESOS POR MES (últimos 6 meses)
+    ingresos_por_mes = (
+        Reserva.objects.filter(confirm_pago_res=True)
+        .annotate(mes=TruncMonth("fecha_res"))
+        .values("mes")
+        .annotate(total=Sum("valor_res"))
+        .order_by("-mes")[:6]
+    )
 
     return render(request, "reservas/admin_dashboard.html", {
-        "cliente": cliente,
-        "reservas": reservas,
+        "cliente": cliente,               # 👈 tu variable original
+        "reservas": reservas,             # 👈 lista filtrada pero compatible
+        "titulo_reservas": titulo_reservas,
+        "filtro": filtro,
+        "fecha_str": fecha_str,
+        # reportes:
+        "razas_top": razas_top,
+        "clientes_top": clientes_top,
+        "ingresos_mes": ingresos_mes,
+        "ingresos_por_mes": ingresos_por_mes,
     })
+
+    
+    
+@requiere_login
+def admin_reserva_detalle(request, pk):
+    # dueño logueado
+    cliente_id = request.session["cliente_id"]
+    cli = get_object_or_404(Cliente, pk=cliente_id)
+
+    # solo el dueño puede ver esta vista
+    if not getattr(cli, "is_owner", False):
+        messages.error(request, "No tienes permisos para ver esta página.")
+        return redirect("home")
+
+    # cargamos la reserva con cliente y canino asociados
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("cliente_id_res", "canino_id_res"),
+        pk=pk
+    )
+
+    # ---- MANEJO DE FORMULARIOS (POST) ----
+    if request.method == "POST":
+        # Actualizar precio y/o medio de pago
+        if "actualizar_precio" in request.POST:
+            nuevo_valor = request.POST.get("valor_res")
+            nuevo_medio = (request.POST.get("medio_pago_res") or "").strip()
+
+            try:
+                if nuevo_valor is not None:
+                    nuevo_valor_int = int(nuevo_valor)
+                    if nuevo_valor_int < 0:
+                        raise ValueError("El valor no puede ser negativo.")
+                    reserva.valor_res = nuevo_valor_int
+
+                if nuevo_medio:
+                    reserva.medio_pago_res = nuevo_medio
+
+                reserva.save()
+                messages.success(request, "Valor y/o medio de pago actualizados correctamente ✅")
+            except ValueError:
+                messages.error(request, "El valor ingresado no es válido. Debe ser un número entero positivo.")
+
+            return redirect("admin_reserva_detalle", pk=pk)
+
+        # Confirmar pago
+        if "confirmar_pago" in request.POST:
+            reserva.confirm_pago_res = True
+            # Si quieres, podrías forzar un medio de pago aquí si está vacío
+            if not reserva.medio_pago_res:
+                reserva.medio_pago_res = "Efectivo"
+            reserva.save()
+            messages.success(request, "Pago confirmado correctamente ✅")
+            return redirect("admin_reserva_detalle", pk=pk)
+
+    cliente_res = reserva.cliente_id_res
+    canino_res = reserva.canino_id_res
+
+    return render(request, "reservas/admin_reserva_detalle.html", {
+        "admin_cli": cli,           # dueño logueado
+        "reserva": reserva,         # reserva
+        "cliente_res": cliente_res, # cliente de la reserva
+        "canino_res": canino_res,   # perro de la reserva
+    })
+
