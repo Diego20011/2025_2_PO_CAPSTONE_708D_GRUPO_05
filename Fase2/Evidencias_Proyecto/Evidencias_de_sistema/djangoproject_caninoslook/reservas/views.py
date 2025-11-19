@@ -12,7 +12,12 @@ from .forms import RegistroDeClienteForm, RegistroDeCaninoForm
 from .models import Cliente, Reserva, Canino
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
+from django.conf import settings
+from django.core.signing import dumps, loads, BadSignature, SignatureExpired
+from django.urls import reverse
+from django.core.mail import send_mail
 
+from django.core.mail import EmailMultiAlternatives
 
 # ==========================
 # Constantes
@@ -101,17 +106,118 @@ def registrar_cliente(request):
         cliente = form.save(commit=False)
         cliente.password_cli = make_password(form.cleaned_data["password_cli"])
 
-        # 🔑 Si NO existe ningún dueño aún, este será el primero
-        from .models import Cliente  # por si arriba no está importado
+        # Si no existe ningún dueño aún, este será el primero
         if not Cliente.objects.filter(is_owner=True).exists():
             cliente.is_owner = True
 
+        cliente.email_verificado = False  # 👈 aún no verifica correo
         cliente.save()
-        if cliente.is_owner:
-            messages.success(request, "¡Cuenta creada con éxito! Has sido configurado como administrador de la tienda 👑")
-        else:
-            messages.success(request, "¡Cuenta creada con éxito! ✅")
+
+        # ========= ENVIAR CORREO DE ACTIVACIÓN (HTML BONITO) =========
+        token = dumps(cliente.pk, salt="activar-correo")
+        url_activacion = request.build_absolute_uri(
+            reverse("activar_cuenta", args=[token])
+        )
+
+        # URL absoluta al logo estático
+        logo_path = ("reservas/images/logo_caninoslook.png")
+        logo_url = request.build_absolute_uri(logo_path)
+
+        asunto = "Activa tu cuenta en CaninosLook"
+
+        # Versión texto plano (por si el cliente no soporta HTML)
+        text_content = (
+            f"Hola {cliente.nombres_cli},\n\n"
+            f"Gracias por registrarte en CaninosLook.\n"
+            f"Para activar tu cuenta, abre este enlace:\n\n"
+            f"{url_activacion}\n\n"
+            f"Si tú no creaste esta cuenta, puedes ignorar este correo."
+        )
+
+        # Versión HTML
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="utf-8">
+          <title>Activa tu cuenta</title>
+        </head>
+        <body style="margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5; padding:20px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden;">
+                  <tr>
+                    <td style="background-color:#ff914d; padding:16px 24px; text-align:center;">
+                      <img src="{logo_url}" alt="CaninosLook" style="max-height:60px; display:block; margin:0 auto;">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:24px;">
+                      <h2 style="margin:0 0 16px 0; color:#333333;">¡Hola, {cliente.nombres_cli}! 🐶✨</h2>
+                      <p style="margin:0 0 12px 0; color:#555555; line-height:1.5;">
+                        Gracias por registrarte en <strong>CaninosLook</strong>. Antes de poder usar tu cuenta,
+                        necesitamos que confirmes que este correo te pertenece.
+                      </p>
+                      <p style="margin:0 0 12px 0; color:#555555; line-height:1.5;">
+                        Haz clic en el siguiente botón para <strong>activar tu cuenta</strong>:
+                      </p>
+                      <p style="text-align:center; margin:24px 0;">
+                        <a href="{url_activacion}"
+                           style="
+                             background-color:#ff914d;
+                             color:#ffffff;
+                             text-decoration:none;
+                             padding:12px 24px;
+                             border-radius:6px;
+                             font-weight:bold;
+                             display:inline-block;
+                           ">
+                          Activar cuenta
+                        </a>
+                      </p>
+                      <p style="margin:0 0 8px 0; color:#777777; font-size:13px; line-height:1.5;">
+                        Si el botón no funciona, también puedes copiar y pegar este enlace en tu navegador:
+                      </p>
+                      <p style="margin:0 0 16px 0; color:#777777; font-size:13px; word-break:break-all;">
+                        {url_activacion}
+                      </p>
+                      <p style="margin:0; color:#aaaaaa; font-size:12px; line-height:1.5;">
+                        Si tú no creaste esta cuenta, puedes ignorar este correo.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background-color:#f0f0f0; padding:12px 24px; text-align:center; color:#999999; font-size:12px;">
+                      &copy; {timezone.now().year} CaninosLook. Todos los derechos reservados.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@caninoslook.local")
+
+        msg = EmailMultiAlternatives(
+            subject=asunto,
+            body=text_content,            # texto plano
+            from_email=from_email,
+            to=[cliente.email_cli],       # destinatario: el correo del usuario
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+
+        messages.success(
+            request,
+            "¡Cuenta creada con éxito! Te enviamos un enlace de activación a tu correo. "
+            "Debes activarla antes de iniciar sesión. ✅"
+        )
         return redirect("login")
+
     return render(request, "reservas/registro.html", {"form": form})
 
 def login_cliente(request):
@@ -128,21 +234,27 @@ def login_cliente(request):
             messages.error(request, "Correo no registrado.")
             return render(request, "reservas/login.html")
 
+        # 👇 Nuevo: bloquear si no ha verificado el correo
+        if not cli.email_verificado:
+            messages.error(
+                request,
+                "Tu correo aún no está verificado. Revisa tu bandeja de entrada y haz clic en el enlace de activación."
+            )
+            return render(request, "reservas/login.html")
+
         if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
-            request.session["is_owner"] = cli.is_owner
-            
+            request.session["es_owner"] = cli.is_owner
             if cli.is_owner:
-                messages.success(request, f"Bienvenido al panel administrativo, {cli.nombres_cli}! 👑")
                 return redirect("admin_dashboard")
-            
             messages.success(request, f"Bienvenido, {cli.nombres_cli}! 👋")
             return redirect("home")
-        
         else:
             messages.error(request, "Contraseña incorrecta.")
+
     return render(request, "reservas/login.html")
+
 
 @requiere_login
 def registrar_canino(request):
@@ -657,3 +769,23 @@ def admin_reserva_detalle(request, pk):
         "canino_res": canino_res,   # perro de la reserva
     })
 
+def activar_cuenta(request, token):
+    try:
+        cliente_id = loads(token, salt="activar-correo", max_age=60 * 60 * 24 * 3)  # 3 días
+    except SignatureExpired:
+        messages.error(request, "El enlace de activación ha expirado. Regístrate nuevamente.")
+        return redirect("crear_cuenta")
+    except BadSignature:
+        messages.error(request, "Enlace de activación inválido.")
+        return redirect("login")
+
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+
+    if cliente.email_verificado:
+        messages.info(request, "Tu cuenta ya estaba activada. Ahora puedes iniciar sesión.")
+    else:
+        cliente.email_verificado = True
+        cliente.save()
+        messages.success(request, "Correo verificado correctamente. Ahora puedes iniciar sesión. ✅")
+
+    return redirect("login")

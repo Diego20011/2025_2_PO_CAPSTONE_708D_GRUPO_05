@@ -6,6 +6,8 @@ urlpatterns = [
     path("crear_cuenta/", views.registrar_cliente, name="crear_cuenta"),
     path("login/", views.login_cliente, name="login"),
     path("logout/", views.logout_cliente, name="logout"),
+    path("activar/<str:token>/", views.activar_cuenta, name="activar_cuenta"),
+
 
     # Navegación principal
     path("", views.home, name="home"),
