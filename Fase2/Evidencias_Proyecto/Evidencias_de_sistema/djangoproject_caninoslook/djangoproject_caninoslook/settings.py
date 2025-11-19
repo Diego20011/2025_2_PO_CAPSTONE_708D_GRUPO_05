@@ -156,6 +156,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 #correo para que envie el correo de confirmacion
-EMAIL_HOST_USER = ""     
-EMAIL_HOST_PASSWORD = ""     
+EMAIL_HOST_USER = "armandocubillos6@gmail.com"     
+EMAIL_HOST_PASSWORD = "bhyz ijeu sner dxbi"     
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

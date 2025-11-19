@@ -16,6 +16,23 @@ REGEX_CUIDADOS = r"^[0-9A-Za-zÁÉÍÓÚáéíóúÑñ \t\n¡!¿?.-]*$"
 
 TAMANOS_VALIDOS = ["Pequeño", "Mediano", "Grande"]
 
+RAZAS_CANINAS = [
+    "Labrador Retriever", "Pastor Alemán", "Golden Retriever", "Bulldog Francés", "Beagle",
+    "Poodle", "Chihuahua", "Boxer", "Pitbull", "Shih Tzu", "Dálmata", "Cocker Spaniel",
+    "Border Collie", "Husky Siberiano", "Rottweiler", "Doberman", "Akita", "Bichón Frisé",
+    "Terrier", "Maltés", "Pug", "Samoyedo", "Shar Pei", "Setter Irlandés", "San Bernardo"
+]
+PESOS_CANINOS = [
+    ("1-5", "1 - 5 kg (pequeño)"),
+    ("6-10", "6 - 10 kg"),
+    ("11-20", "11 - 20 kg"),
+    ("21-30", "21 - 30 kg"),
+    ("31-40", "31 - 40 kg"),
+    ("41+", "Más de 40 kg")
+]
+
+
+
 # ==========================
 # Formularios
 # ==========================
@@ -90,8 +107,11 @@ class RegistroDeCaninoForm(forms.ModelForm):
         widgets = {
             "nombre_can": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre del perro"}),
             "fecha_nac_can": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "raza_can": forms.TextInput(attrs={"class": "form-control", "placeholder": "Raza"}),
-            "peso_can": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Peso en kg"}),
+            "raza_can": forms.Select(
+                choices=[(r, r) for r in RAZAS_CANINAS],
+                attrs={"class": "form-select"}
+            ),
+            "peso_can": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej: 12"}),
             "tamano_can": forms.Select(attrs={"class": "form-select"}),
             "cuidados_esp_can": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Cuidados especiales"}),
         }
@@ -113,20 +133,14 @@ class RegistroDeCaninoForm(forms.ModelForm):
         if edad > 25:
             raise ValidationError("El perro no puede tener más de 25 años.")
         return fecha_nac
-
-    def clean_raza_can(self):
-        raza = self.cleaned_data.get('raza_can', '').strip()
-        if not re.match(REGEX_RAZA, raza):
-            raise ValidationError("La raza solo puede contener letras y espacios simples.")
-        if len(raza) > 15:
-            raise ValidationError("La raza no puede superar los 15 caracteres.")
-        return raza
-
     def clean_peso_can(self):
         peso = self.cleaned_data.get('peso_can')
         if peso <= 0 or peso > 99:
             raise ValidationError("El peso debe ser un número entre 1 y 99 kg.")
         return peso
+
+
+
 
     def clean_tamano_can(self):
         tamaño = self.cleaned_data.get('tamano_can')

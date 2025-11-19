@@ -14,10 +14,13 @@
             <label for="servicio" class="form-label">Servicio principal</label>
             <select name="servicio" id="servicio" class="form-select" required>
               <option value="">Selecciona servicio</option>
-              <option value="Corte y baño" {% if servSelecc == "Corte y baño" %}selected{% endif %}>Estética full</option>
-              <option value="Corte" {% if servSelecc == "Corte" %}selected{% endif %}>Corte de pelo</option>
               <option value="Baño" {% if servSelecc == "Baño" %}selected{% endif %}>Baño</option>
+              <option value="Corte de pelo" {% if servSelecc == "Corte de pelo" %}selected{% endif %}>Corte de pelo</option>
+              <option value="Corte de uñas" {% if servSelecc == "Corte de uñas" %}selected{% endif %}>Corte de uñas</option>
+              <option value="Limpieza de oido" {% if servSelecc == "Limpieza de oido" %}selected{% endif %}>Limpieza de oído</option>
+              <option value="Estética full" {% if servSelecc == "Estética full" %}selected{% endif %}>Estética full</option>
             </select>
+
           </div>
           <div class="mb-3">
             <label for="fecha_reserva" class="form-label">Fecha</label>

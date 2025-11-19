@@ -23,22 +23,13 @@ from django.core.mail import EmailMultiAlternatives
 # Constantes
 # ==========================
 DURACIONES = {
-    'Baño': timedelta(minutes=45),
-    'Corte': timedelta(hours=2),
-    'Corte y baño': timedelta(hours=2, minutes=45),
-    'Baño + Uñas': timedelta(hours=1),
-    'Baño + Oidos': timedelta(hours=1),
-    'Baño + Uñas y oidos': timedelta(hours=1),
-    'Corte + Uñas': timedelta(hours=2, minutes=15),
-    'Corte + Oidos': timedelta(hours=2, minutes=15),
-    'Corte + Uñas y oidos': timedelta(hours=2, minutes=15),
-    'Corte y baño + Uñas y oidos': timedelta(hours=3),
-    'Corte y baño + Uñas': timedelta(hours=3),
-    'Corte y baño + Oidos': timedelta(hours=3),
-    'Uñas y oidos': timedelta(minutes=15),
-    'Uñas': timedelta(minutes=15),
-    'Oidos': timedelta(minutes=15),
+    "Baño": timedelta(minutes=45),
+    "Corte de pelo": timedelta(hours=2),
+    "Corte de uñas": timedelta(minutes=15),
+    "Limpieza de oido": timedelta(minutes=15),
+    "Estética full": timedelta(hours=2, minutes=45),
 }
+
 
 PRECIOS = {
     'Pequeño': 20000,
@@ -47,13 +38,16 @@ PRECIOS = {
 }
 
 SERVICIOS_VALIDOS = {
-    "Corte": "Corte de pelo",
     "Baño": "Baño",
-    "Corte y baño": "Estética full",
-    "Uñas": "Corte de uñas",
-    "Oidos": "Limpieza de oídos",
-    "Uñas y oidos": "Cuidados Full"
+    "Corte de pelo": "Corte de pelo",
+    "Corte de uñas": "Corte de uñas",
+    "Limpieza de oido": "Limpieza de oido",
+    "Estética full": "Estética full"
 }
+
+
+
+
 
 # ==========================
 # Decorador para login
@@ -245,7 +239,7 @@ def login_cliente(request):
         if check_password(password, cli.password_cli):
             request.session["cliente_id"] = cli.pk
             request.session["cliente_nombre"] = cli.nombres_cli
-            request.session["es_owner"] = cli.is_owner
+            request.session["is_owner"] = cli.is_owner
             if cli.is_owner:
                 return redirect("admin_dashboard")
             messages.success(request, f"Bienvenido, {cli.nombres_cli}! 👋")
@@ -329,19 +323,19 @@ def reserva(request):
         messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
         return redirect("registrar_perro")
 
-    servSelecc = request.GET.get("servicio")
-    servSelecc2 = request.GET.get("servicio2")
+    servSelecc_raw = request.GET.get("servicio")
     fechaDeseada = request.GET.get("fecha_reserva")
+    servicioConcat = SERVICIOS_VALIDOS.get(servSelecc_raw, servSelecc_raw)
 
-    servicioConcat = " + ".join(filter(None, [servSelecc, servSelecc2]))
     reservas_existentes = Reserva.objects.filter(fecha_res=fechaDeseada) if fechaDeseada else Reserva.objects.none()
     horas_disponibles = calcular_horas_disponibles(servicioConcat, reservas_existentes)
 
     paso1display = 1
-    if request.GET.get("continuar") == "1" and (servSelecc or servSelecc2) and fechaDeseada:
+    if request.GET.get("continuar") == "1" and servSelecc_raw and fechaDeseada:
         paso1display = 0
     if request.GET.get("volver") == "1":
         paso1display = 1
+
 
     if request.method == "POST" and "reservar_hora" in request.POST:
         servicio = (request.POST.get("servicio") or "").strip()
@@ -410,16 +404,15 @@ def reserva(request):
     return render(request, "reservas/reserva.html", {
         "res_x_fecha": reservas_existentes,
         "fechaDeseada": fechaDeseada,
-        "servSelecc": servSelecc,
-        "servSelecc2": servSelecc2,
+        "servSelecc": servSelecc_raw,
         "servicioConcat": servicioConcat,
         "horas_disponibles": horas_disponibles,
         "perros_cli": perros_cli,
         "paso1display": paso1display,
-        "diccionario_serv1": SERVICIOS_VALIDOS.get(servSelecc, ""),
-        "diccionario_serv2": SERVICIOS_VALIDOS.get(servSelecc2, ""),
+        "diccionario_serv": servicioConcat,
         "fechaD_formateada": "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else "",
     })
+
 
 @requiere_login
 def ver_reservas(request):

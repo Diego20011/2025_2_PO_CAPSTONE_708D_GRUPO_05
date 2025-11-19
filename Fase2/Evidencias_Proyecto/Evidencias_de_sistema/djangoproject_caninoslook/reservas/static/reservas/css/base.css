@@ -128,4 +128,13 @@ footer a:hover {
   footer {
     font-size: 0.8rem;
   }
+  input[type="date"] {
+  border-radius: 10px;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  background-color: #FFF8E1;
+  color: #6D4C41;
+  font-weight: 500;
+}
+
 }
