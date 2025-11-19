@@ -204,9 +204,9 @@ def registrar_cliente(request):
 
         msg = EmailMultiAlternatives(
             subject=asunto,
-            body=text_content,            # texto plano
+            body=text_content,            
             from_email=from_email,
-            to=[cliente.email_cli],       # destinatario: el correo del usuario
+            to=[cliente.email_cli],      
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send()
