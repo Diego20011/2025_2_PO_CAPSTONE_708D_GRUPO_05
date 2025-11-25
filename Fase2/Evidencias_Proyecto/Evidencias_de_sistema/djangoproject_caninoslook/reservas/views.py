@@ -420,16 +420,27 @@ def ver_reservas(request):
     fechaActual = timezone.localtime().date()
     horaActual = timezone.localtime().time()
 
-    reservasACancelar = Reserva.objects.filter(
+    confCancelarR=0
+    if request.GET.get("confCancelarR"):
+        confCancelarR=1
+        reservasACancelar = Reserva.objects.filter(
+        Q(fecha_res__gt=fechaActual) |
+        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
+        cliente_id_res_id=cliente_id,
+        id_reserva=request.GET.get("confCancelarR")
+        ).order_by("fecha_res", "hora_res")
+    else:
+        reservasACancelar = Reserva.objects.filter(
         Q(fecha_res__gt=fechaActual) |
         Q(fecha_res=fechaActual, hora_res__gte=horaActual),
         cliente_id_res_id=cliente_id
-    ).order_by("fecha_res", "hora_res")
+        ).order_by("fecha_res", "hora_res")
 
     if request.method == "POST" and "cancelar_reserva" in request.POST:
         reserva = get_object_or_404(Reserva, pk=request.POST.get("reserva_id"), cliente_id_res_id=cliente_id)
         reserva.delete()
         messages.success(request, "Reserva cancelada correctamente ✅")
+        return redirect("ver_reservas")
 
     reserva_id = request.session.pop("ultima_reserva_id", None)
     ultima_reserva = Reserva.objects.filter(pk=reserva_id, cliente_id_res_id=cliente_id).first() if reserva_id else None
@@ -437,6 +448,7 @@ def ver_reservas(request):
     return render(request, "reservas/ver_reservas.html", {
         "reservasACancelar": reservasACancelar,
         "ultima_reserva": ultima_reserva,
+        "confCancelarR": confCancelarR
     })
 
 def servicios(request):

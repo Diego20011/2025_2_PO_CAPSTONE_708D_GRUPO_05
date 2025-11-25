@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
             name='Canino',
             fields=[
                 ('id_canino', models.AutoField(primary_key=True, serialize=False)),
-                ('nombre_can', models.CharField(max_length=20, unique=True, verbose_name='Nombre')),
+                ('nombre_can', models.CharField(max_length=20, verbose_name='Nombre')),
                 ('fecha_nac_can', models.DateField(verbose_name='Fecha de nacimiento')),
                 ('raza_can', models.CharField(max_length=15, verbose_name='Raza')),
                 ('peso_can', models.PositiveIntegerField(verbose_name='Peso (kg)')),

@@ -31,7 +31,7 @@ class Canino(models.Model):
     ]
 
     id_canino = models.AutoField(primary_key=True)
-    nombre_can = models.CharField("Nombre", max_length=20, unique=True)
+    nombre_can = models.CharField("Nombre", max_length=20)
     fecha_nac_can = models.DateField("Fecha de nacimiento")
     raza_can = models.CharField("Raza", max_length=15)
     peso_can = models.PositiveIntegerField("Peso (kg)")

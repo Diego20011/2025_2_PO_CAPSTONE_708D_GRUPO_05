@@ -24,19 +24,23 @@
           {% if f.confirm_pago_res %}
             <span class="badge bg-success">Pagado</span>
           {% else %}
-            <span class="badge bg-warning text-dark">Pendiente</span>
+            <span class="badge bg-danger">Sin pagar</span>
           {% endif %}
         </p>
 
         {% if not f.confirm_pago_res %}
-          <form method="post" action="{% url 'ver_reservas' %}">
-            {% csrf_token %}
-            <input type="hidden" name="reserva_id" value="{{ f.pk }}">
-            <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Cancelar reserva</button>
-          </form>
+          {% if confCancelarR == 1 %}
+            <form method="post" action="{% url 'ver_reservas' %}">
+              {% csrf_token %}
+              <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+              <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Confirmar cancelar reserva</button>
+            </form>
+          {% elif confCancelarR == 0 %}
+            <form method="get">
+              <button type="submit" name="confCancelarR" class="btn btn-danger btn-sm" value="{{ f.pk }}">Cancelar reserva</button>
+            </form>
+          {% endif %}
         {% endif %}
-
-        <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-primary btn-sm">Administrar mascotas</a>
       </div>
     </div>
   {% endfor %}

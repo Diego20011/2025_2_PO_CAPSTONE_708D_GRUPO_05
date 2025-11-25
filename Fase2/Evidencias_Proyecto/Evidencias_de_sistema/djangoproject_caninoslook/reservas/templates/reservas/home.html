@@ -27,16 +27,6 @@
             <span class="badge bg-danger">Sin pagar</span>
           {% endif %}
         </p>
-
-        {% if not f.confirm_pago_res %}
-          <form method="post" action="{% url 'ver_reservas' %}">
-            {% csrf_token %}
-            <input type="hidden" name="reserva_id" value="{{ f.pk }}">
-            <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Cancelar reserva</button>
-          </form>
-        {% endif %}
-
-        <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-secondary btn-sm mt-2">Administrar mascotas</a>
       </div>
     </div>
   {% endfor %}
@@ -60,14 +50,6 @@
             <p><strong>Raza:</strong> {{ m.raza_can }}</p>
             <p><strong>Tamaño:</strong> {{ m.tamano_can }}</p>
             <p><strong>Peso:</strong> {{ m.peso_can }} kg</p>
-
-            <div class="d-flex gap-2">
-              <a href="{% url 'registrar_perro' %}?editar={{ m.pk }}" class="btn btn-outline-secondary btn-sm">Editar</a>
-              <form method="post" action="{% url 'eliminar_mascota' m.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
-              </form>
-            </div>
           </div>
         </div>
       </div>
