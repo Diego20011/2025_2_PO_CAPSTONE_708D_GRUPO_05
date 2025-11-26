@@ -4,7 +4,11 @@
 {% block content %}
   <div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
     <div class="card col-12 col-md-10 col-lg-8 p-4 shadow-sm">
-      <h2 class="mb-4 text-center">📋 Mis Reservas</h2>
+      {% if confCancelarR == 0 %}
+        <h2 class="mb-4 text-center">📋 Mis Reservas</h2>
+      {% elif confCancelarR == 1 %}
+        <h2 class="mb-4 text-center">📋 Cancelar reserva</h2>
+      {% endif %}
 
       {% if ultima_reserva %}
         <div class="alert alert-success">
@@ -18,13 +22,14 @@
       <div class="card-body">
         <h5 class="card-title">{{ f.servicio_res }}</h5>
         <p><strong>🐶 Mascota:</strong> {{ f.canino_id_res.nombre_can }}</p>
-        <p><strong>📅 Fecha:</strong> {{ f.fecha_res }} | <strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
+        <p><strong>📅 Fecha:</strong> {{ f.fecha_res|date:"d/m/Y" }}</p>
+        <p><strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
         <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
-        <p><strong>Estado de pago:</strong>
+        <p class="d-flex align-items-center gap-2"><strong>Estado de pago:</strong>
           {% if f.confirm_pago_res %}
             <span class="badge bg-success">Pagado</span>
           {% else %}
-            <span class="badge bg-danger">Sin pagar</span>
+            <span class="badge" style="background-color: #f7c600; color: #ff0000;">Sin pagar</span>
           {% endif %}
         </p>
 
@@ -32,8 +37,11 @@
           {% if confCancelarR == 1 %}
             <form method="post" action="{% url 'ver_reservas' %}">
               {% csrf_token %}
-              <input type="hidden" name="reserva_id" value="{{ f.pk }}">
-              <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm">Confirmar cancelar reserva</button>
+              <div class="d-flex gap-2">
+                <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+                <button type="submit" name="cancelar_reserva" class="btn btn-danger btn-sm flex-fill">Confirmar</button>
+                <a href="{% url 'ver_reservas' %}" class="btn btn-outline-secondary btn-sm flex-fill text-center" style="text-align: center;">Volver</a>
+              </div>
             </form>
           {% elif confCancelarR == 0 %}
             <form method="get">
@@ -45,12 +53,12 @@
     </div>
   {% endfor %}
 {% else %}
-  <div class="alert alert-info text-center">No hay reservas registradas a futuro.</div>
+  <div class="alert alert-info text-center">No hay reservas a futuro.</div>
 {% endif %}
 
 
-<div class="d-flex justify-content-between mt-3">
-  <a href="{% url 'historial_reservas' %}" class="btn btn-outline-primary">Ver historial de reservas pasadas</a>
+<div class="d-flex justify-content-between mt-3 gap-2">
+  <a href="{% url 'historial_reservas' %}" class="btn btn-primary">Ver historial de reservas pasadas</a>
   <a href="{% url 'home' %}" class="btn btn-secondary">Volver al inicio</a>
 </div>
   </div>

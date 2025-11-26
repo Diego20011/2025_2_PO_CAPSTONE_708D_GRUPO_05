@@ -423,18 +423,14 @@ def ver_reservas(request):
     confCancelarR=0
     if request.GET.get("confCancelarR"):
         confCancelarR=1
-        reservasACancelar = Reserva.objects.filter(
-        Q(fecha_res__gt=fechaActual) |
-        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
-        cliente_id_res_id=cliente_id,
-        id_reserva=request.GET.get("confCancelarR")
-        ).order_by("fecha_res", "hora_res")
+        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("confCancelarR"))
     else:
         reservasACancelar = Reserva.objects.filter(
         Q(fecha_res__gt=fechaActual) |
-        Q(fecha_res=fechaActual, hora_res__gte=horaActual),
+        Q(fecha_res=fechaActual, hora_res__gt=horaActual) |
+        Q(confirm_pago_res=0) | Q(confirm_pago_res=1),
         cliente_id_res_id=cliente_id
-        ).order_by("fecha_res", "hora_res")
+        ).order_by("confirm_pago_res", "fecha_res", "hora_res")
 
     if request.method == "POST" and "cancelar_reserva" in request.POST:
         reserva = get_object_or_404(Reserva, pk=request.POST.get("reserva_id"), cliente_id_res_id=cliente_id)
