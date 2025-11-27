@@ -9,25 +9,32 @@
       <!-- Paso 1 -->
       {% if paso1display == 1 %}
         <form method="get" action="{% url 'reservar_hora' %}">
-          <h5>Selecciona servicio y fecha</h5>
-          <div class="mb-3">
-            <label for="servicio" class="form-label">Servicio principal</label>
-            <select name="servicio" id="servicio" class="form-select" required>
-              <option value="">Selecciona servicio</option>
-              <option value="Baño" {% if servSelecc == "Baño" %}selected{% endif %}>Baño</option>
-              <option value="Corte de pelo" {% if servSelecc == "Corte de pelo" %}selected{% endif %}>Corte de pelo</option>
-              <option value="Corte de uñas" {% if servSelecc == "Corte de uñas" %}selected{% endif %}>Corte de uñas</option>
-              <option value="Limpieza de oido" {% if servSelecc == "Limpieza de oido" %}selected{% endif %}>Limpieza de oído</option>
-              <option value="Estética full" {% if servSelecc == "Estética full" %}selected{% endif %}>Estética full</option>
-            </select>
+        <h5>Selecciona servicios y fecha</h5>
+        <div class="mb-3">
+          <label class="form-label">Servicios (puedes elegir uno o más)</label>
 
-          </div>
-          <div class="mb-3">
-            <label for="fecha_reserva" class="form-label">Fecha</label>
-            <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" value="{{ fechaDeseada }}" required>
-          </div>
-          <button type="submit" name="continuar" value="1" class="btn btn-primary w-100">Continuar</button>
-        </form>
+          {% for clave, etiqueta in SERVICIOS_VALIDOS.items %}
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="servicio"
+                id="servicio_{{ forloop.counter }}"
+                value="{{ clave }}"
+                {% if clave in servicios_seleccionados %}checked{% endif %}
+              >
+              <label class="form-check-label" for="servicio_{{ forloop.counter }}">
+                {{ etiqueta }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="mb-3">
+          <label for="fecha_reserva" class="form-label">Fecha</label>
+          <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" value="{{ fechaDeseada }}" required>
+        </div>
+        <button type="submit" name="continuar" value="1" class="btn btn-primary w-100">Continuar</button>
+
       {% else %}
         <!-- Paso 2 -->
         <form method="post" action="{% url 'reservar_hora' %}">

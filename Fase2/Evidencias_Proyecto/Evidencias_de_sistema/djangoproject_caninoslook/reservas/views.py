@@ -63,32 +63,114 @@ def requiere_login(view_func):
 # ==========================
 # Función auxiliar
 # ==========================
-def calcular_horas_disponibles(servicioConcat, reservas_existentes):
-    lista_horas_full = [f"{h:02d}:{m:02d}:00" for h in range(9, 18) for m in (0, 15, 30, 45)]
-    lista_horas_full.append("18:00:00")
-    horas_disponibles = []
+def obtener_duracion_total(servicio_str):
+    """
+    Acepta por ejemplo:
+      - "Baño"
+      - "Baño + Corte de pelo"
+      - "Baño + Corte de pelo + Deslanado"
+    y devuelve la suma de DURACIONES de cada servicio válido.
+    """
+    if not servicio_str:
+        return None
 
+    # Separa por '+'
+    partes = [p.strip() for p in servicio_str.split("+") if p.strip()]
+
+    dur_total = timedelta()
+    valido = False
+
+    for p in partes:
+        # p debe coincidir con las claves de DURACIONES, ej: "Baño", "Corte de pelo"
+        if p in DURACIONES:
+            dur_total += DURACIONES[p]
+            valido = True
+
+    return dur_total if valido else None
+
+
+def calcular_horas_disponibles(servicioConcat, reservas_existentes):
+    # Generar todas las horas cada 15 minutos entre 09:00 y 18:00
+    lista_horas_full = [
+        f"{h:02d}:{m:02d}:00"
+        for h in range(9, 18)
+        for m in (0, 15, 30, 45)
+    ]
+    lista_horas_full.append("18:00:00")  # cierre del día
+
+    # 1) Bloquear los bloques ya reservados
     if reservas_existentes.exists():
         for reserva in reservas_existentes:
-            duracion = DURACIONES.get(reserva.servicio_res)
-            if not duracion:
+            duracion_existente = obtener_duracion_total(reserva.servicio_res)
+            if not duracion_existente:
                 continue
-            bloque = int(duracion.total_seconds() / 900)
+
+            # bloques de 15 minutos
+            bloques_ocupados = int(duracion_existente.total_seconds() / 900)
             try:
-                idx = lista_horas_full.index(reserva.hora_res.strftime("%H:%M:%S"))
-                del lista_horas_full[idx:idx + bloque]
+                idx_inicio = lista_horas_full.index(
+                    reserva.hora_res.strftime("%H:%M:%S")
+                )
+            except ValueError:
+                # Si por alguna razón la hora no está en la lista, la ignoramos
+                continue
+
+            # Eliminar de la grilla los bloques ocupados por esta reserva
+            del lista_horas_full[idx_inicio:idx_inicio + bloques_ocupados]
+
+    horas_disponibles = []
+
+    # 2) Ahora, según lo que el cliente quiere reservar (servicioConcat),
+    #    calculamos qué horas son posibles
+    duracion_nueva = obtener_duracion_total(servicioConcat)
+    if duracion_nueva:
+        bloques_necesarios = int(duracion_nueva.total_seconds() / 900)
+
+        for i in range(len(lista_horas_full) - bloques_necesarios):
+            # Verificamos que haya bloques consecutivos suficientes
+            try:
+                inicio = datetime.strptime(lista_horas_full[i], "%H:%M:%S")
             except ValueError:
                 continue
 
-    duracion = DURACIONES.get(servicioConcat)
-    if duracion:
-        bloques = int(duracion.total_seconds() / 900)
-        for i in range(len(lista_horas_full) - bloques):
-            inicio = datetime.strptime(lista_horas_full[i], "%H:%M:%S")
-            if all((inicio + timedelta(minutes=15 * j)).strftime("%H:%M:%S") == lista_horas_full[i + j] for j in range(1, bloques)):
+            es_valido = True
+            for j in range(1, bloques_necesarios):
+                esperado = (inicio + timedelta(minutes=15 * j)).strftime("%H:%M:%S")
+                if lista_horas_full[i + j] != esperado:
+                    es_valido = False
+                    break
+
+            if es_valido:
                 horas_disponibles.append(lista_horas_full[i])
 
+    # Si por algún motivo no se pudo calcular (o no hay servicio todavía),
+    # devolvemos la grilla completa como fallback
     return horas_disponibles or lista_horas_full
+
+
+def obtener_precio_total(servicio_str, tamano_can):
+    """
+    Calcula el valor de la reserva según:
+    - tamaño del canino (usa PRECIOS como base)
+    - cantidad de servicios seleccionados
+    """
+    if not servicio_str:
+        return 0
+
+    partes = [p.strip() for p in servicio_str.split("+") if p.strip()]
+    servicios_validos = [p for p in partes if p in SERVICIOS_VALIDOS]
+
+    if not servicios_validos:
+        return 0
+
+    # Precio base según tamaño del perro
+    base = PRECIOS.get(tamano_can, 20000)
+
+    # Versión simple: multiplicar por la cantidad de servicios
+    cantidad = len(servicios_validos)
+    valor_total = base * cantidad
+
+    return valor_total
 
 # ==========================
 # Vistas
@@ -314,7 +396,6 @@ def home(request):
         "ultima_reserva": ultima_reserva,
     })
 
-
 @requiere_login
 def reserva(request):
     cliente_id = request.session["cliente_id"]
@@ -323,19 +404,20 @@ def reserva(request):
         messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
         return redirect("registrar_perro")
 
-    servSelecc_raw = request.GET.get("servicio")
+    servicios_seleccionados = request.GET.getlist("servicio")
+    servicios_seleccionados = [s for s in servicios_seleccionados if s in SERVICIOS_VALIDOS]
+
     fechaDeseada = request.GET.get("fecha_reserva")
-    servicioConcat = SERVICIOS_VALIDOS.get(servSelecc_raw, servSelecc_raw)
+    servicioConcat = " + ".join(servicios_seleccionados)
 
     reservas_existentes = Reserva.objects.filter(fecha_res=fechaDeseada) if fechaDeseada else Reserva.objects.none()
     horas_disponibles = calcular_horas_disponibles(servicioConcat, reservas_existentes)
 
     paso1display = 1
-    if request.GET.get("continuar") == "1" and servSelecc_raw and fechaDeseada:
+    if request.GET.get("continuar") == "1" and servicios_seleccionados and fechaDeseada:
         paso1display = 0
     if request.GET.get("volver") == "1":
         paso1display = 1
-
 
     if request.method == "POST" and "reservar_hora" in request.POST:
         servicio = (request.POST.get("servicio") or "").strip()
@@ -346,6 +428,7 @@ def reserva(request):
         if not servicio or not fecha_str or not hora_str or not perro_id:
             messages.error(request, "Todos los campos son obligatorios.")
             return redirect("reservar_hora")
+
         try:
             fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d").date()
             hora_dt = datetime.strptime(hora_str, "%H:%M:%S").time()
@@ -354,14 +437,14 @@ def reserva(request):
             return redirect("reservar_hora")
 
         perroReserva = get_object_or_404(Canino, pk=perro_id)
-        valor_res = PRECIOS.get(perroReserva.tamano_can, 20000)
-        duracion = DURACIONES.get(servicio)
 
+        duracion = obtener_duracion_total(servicio)
+
+        valor_res = obtener_precio_total(servicio, perroReserva.tamano_can)
         if not duracion:
             messages.error(request, "Servicio inválido.")
             return redirect("reservar_hora")
 
-        # Validación de duplicado: misma mascota, mismo servicio, misma fecha
         if Reserva.objects.filter(
             canino_id_res_id=perro_id,
             servicio_res=servicio,
@@ -378,12 +461,16 @@ def reserva(request):
                 reservas_withAtomic = Reserva.objects.select_for_update().filter(fecha_res=fecha_dt)
                 for r in reservas_withAtomic:
                     inicio_existente = datetime.combine(r.fecha_res, r.hora_res)
-                    fin_existente = inicio_existente + DURACIONES.get(r.servicio_res, timedelta())
+                    dur_exist = obtener_duracion_total(r.servicio_res) or timedelta()
+                    fin_existente = inicio_existente + dur_exist
+
                     if inicio_nueva < fin_existente and fin_nueva > inicio_existente:
                         raise ValidationError("😔 Esa hora ya fue reservada. Elige otra.")
 
+                servicio_db = (servicio or "").strip()[:250]
+
                 reserva_nueva = Reserva.objects.create(
-                    servicio_res=servicio,
+                    servicio_res=servicio_db,
                     hora_res=hora_dt,
                     fecha_res=fecha_dt,
                     medio_pago_res="Efectivo",
@@ -391,7 +478,7 @@ def reserva(request):
                     confirm_pago_res=False,
                     cliente_id_res_id=cliente_id,
                     canino_id_res_id=perro_id,
-                )
+)
                 messages.success(request, "✅ Reserva creada correctamente")
                 request.session["ultima_reserva_id"] = reserva_nueva.pk
                 return redirect("home")
@@ -404,14 +491,16 @@ def reserva(request):
     return render(request, "reservas/reserva.html", {
         "res_x_fecha": reservas_existentes,
         "fechaDeseada": fechaDeseada,
-        "servSelecc": servSelecc_raw,
         "servicioConcat": servicioConcat,
         "horas_disponibles": horas_disponibles,
         "perros_cli": perros_cli,
         "paso1display": paso1display,
         "diccionario_serv": servicioConcat,
         "fechaD_formateada": "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else "",
+        "servicios_seleccionados": servicios_seleccionados,
+        "SERVICIOS_VALIDOS": SERVICIOS_VALIDOS,
     })
+
 
 
 @requiere_login

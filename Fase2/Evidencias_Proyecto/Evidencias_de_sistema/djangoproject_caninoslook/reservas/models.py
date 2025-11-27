@@ -13,9 +13,9 @@ class Cliente(models.Model):
     email_verificado = models.BooleanField("Correo verificado", default=False) 
 
     class Meta:
-        db_table = 'cliente' #Esto le dice a Django el nombre exacto de la tabla que debe usar en la base de datos. por defecto guarda: nombreApp_nombreTabla
-        verbose_name = "Cliente" #Es el nombre legible en singular que se muestra en el panel de administración de Django (admin) y en formularios.
-        verbose_name_plural = "Clientes" #Similar al verbose_name, pero en plural, también usado en el admin y otras interfaces.
+        db_table = 'cliente'
+        verbose_name = "Cliente" 
+        verbose_name_plural = "Clientes" 
 
     def __str__(self):
         return f"{self.nombres_cli} {self.apellidos_cli}"
@@ -42,7 +42,7 @@ class Canino(models.Model):
         Cliente,
         verbose_name="Cliente",
         on_delete=models.SET_DEFAULT,
-        default=1, #Hay que agregar un cliente "fantasma" con id = 1
+        default=1, 
         db_column='cliente_id_can',
         related_name='caninos'
     )
@@ -58,7 +58,7 @@ class Canino(models.Model):
 
 class Reserva(models.Model):
     id_reserva = models.AutoField(primary_key=True)
-    servicio_res = models.CharField("Servicio", max_length=30) #Hay que ponerle 30 max.
+    servicio_res = models.CharField("Servicio", max_length=255) 
     hora_res = models.TimeField("Hora")
     fecha_res = models.DateField("Fecha")
     medio_pago_res = models.CharField("Medio de pago", max_length=15)
@@ -67,14 +67,14 @@ class Reserva(models.Model):
     cliente_id_res = models.ForeignKey(
         Cliente,
         verbose_name="Cliente",
-        on_delete=models.CASCADE, #SI BORRAS UN CLIENTE, SE BORRA TAMBIÉN LA RESERVA, A MENOS, QUE YA SE ALLA HECHO LA SESIÓN.
+        on_delete=models.CASCADE, 
         db_column='cliente_id_res',
         related_name='reservas'
     )
     canino_id_res = models.ForeignKey(
         Canino,
         verbose_name="Canino",
-        on_delete=models.CASCADE, #SI BORRAS UN CANINO, SE BORRA TAMBIÉN LA RESERVA, A MENOS, QUE YA SE ALLA HECHO LA SESIÓN.
+        on_delete=models.CASCADE, 
         db_column='canino_id_res',
         related_name='reservas'
     )
