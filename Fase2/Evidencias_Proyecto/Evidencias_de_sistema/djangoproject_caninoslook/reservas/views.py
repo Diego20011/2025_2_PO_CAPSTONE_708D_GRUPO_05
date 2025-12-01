@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
@@ -510,9 +511,17 @@ def ver_reservas(request):
     horaActual = timezone.localtime().time()
 
     confCancelarR=0
+    pagar=0
     if request.GET.get("confCancelarR"):
         confCancelarR=1
-        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("confCancelarR"))
+        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("confCancelarR"), cliente_id_res_id=cliente_id)
+        if not reservasACancelar.exists():
+            raise Http404("Reserva no encontrada")
+    elif request.GET.get("pagar"):
+        pagar=1
+        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("pagar"), cliente_id_res_id=cliente_id)
+        if not reservasACancelar.exists():
+            raise Http404("Reserva no encontrada")
     else:
         reservasACancelar = Reserva.objects.filter(
         Q(fecha_res__gt=fechaActual) |
@@ -533,7 +542,8 @@ def ver_reservas(request):
     return render(request, "reservas/ver_reservas.html", {
         "reservasACancelar": reservasACancelar,
         "ultima_reserva": ultima_reserva,
-        "confCancelarR": confCancelarR
+        "confCancelarR": confCancelarR,
+        "pagar": pagar
     })
 
 def servicios(request):

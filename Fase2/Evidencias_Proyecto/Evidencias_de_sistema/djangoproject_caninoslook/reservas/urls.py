@@ -18,6 +18,9 @@ urlpatterns = [
     path("ver_reservas/", views.ver_reservas, name="ver_reservas"),
     path("servicios/", views.servicios, name="servicios"),
 
+    #Pagar
+    #path("realizar_pago/", views.pagar, name="realizar_pago")
+
     # 🐾 Gestión de mascotas
     path("mis_mascotas/", views.mis_mascotas, name="mis_mascotas"),
     path("mascotas/<int:pk>/editar/", views.editar_mascota, name="editar_mascota"),

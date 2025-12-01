@@ -4,10 +4,12 @@
 {% block content %}
   <div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
     <div class="card col-12 col-md-10 col-lg-8 p-4 shadow-sm">
-      {% if confCancelarR == 0 %}
+      {% if confCancelarR == 0 and pagar == 0 %}
         <h2 class="mb-4 text-center">📋 Mis Reservas</h2>
       {% elif confCancelarR == 1 %}
-        <h2 class="mb-4 text-center">📋 Cancelar reserva</h2>
+        <h2 class="mb-4 text-center">📋Cancelar reserva❌</h2>
+      {% elif pagar == 1 %}
+        <h2 class="mb-4 text-center">📋Pagar reserva💵</h2>
       {% endif %}
 
       {% if ultima_reserva %}
@@ -34,7 +36,14 @@
         </p>
 
         {% if not f.confirm_pago_res %}
-          {% if confCancelarR == 1 %}
+          {% if confCancelarR == 0 and pagar == 0%}
+            <form method="get">
+              <div class="d-flex gap-2">
+                <button type="submit" name="confCancelarR" class="btn btn-danger btn-sm flex-fill w-50" value="{{ f.pk }}">Cancelar reserva</button>
+                <button type="submit" name="pagar" class="btn btn-success btn-sm flex-fill w-50" value="{{ f.pk }}">Pagar</button>
+              </div>
+            </form>
+          {% elif confCancelarR == 1 %}
             <form method="post" action="{% url 'ver_reservas' %}">
               {% csrf_token %}
               <div class="d-flex gap-2">
@@ -43,9 +52,19 @@
                 <a href="{% url 'ver_reservas' %}" class="btn btn-outline-secondary btn-sm flex-fill text-center" style="text-align: center;">Volver</a>
               </div>
             </form>
-          {% elif confCancelarR == 0 %}
-            <form method="get">
-              <button type="submit" name="confCancelarR" class="btn btn-danger btn-sm" value="{{ f.pk }}">Cancelar reserva</button>
+          {% elif pagar == 1 %}
+            <form method="post" action="{% url 'ver_reservas' %}">
+              {% csrf_token %}
+              <select name="medioPago" id="medioPago" class="form-select mb-3" required>
+                <option value="">Método de pago</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+              <div class="d-flex gap-2">
+                <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+                <button type="submit" name="pagarContinuar" class="btn btn-success btn-sm flex-fill">Continuar</button>
+                <a href="{% url 'ver_reservas' %}" class="btn btn-outline-secondary btn-sm flex-fill text-center" style="text-align: center;">Volver</a>
+              </div>
             </form>
           {% endif %}
         {% endif %}
