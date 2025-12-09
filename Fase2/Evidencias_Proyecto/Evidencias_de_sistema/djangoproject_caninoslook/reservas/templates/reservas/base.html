@@ -60,11 +60,11 @@
                    href="{% url 'mis_mascotas' %}">Mis Mascotas</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'logout' %}">Salir</a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link {% if request.path == '/servicios/' %}active{% endif %}"
                    href="{% url 'servicios' %}">Servicios</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Salir</a>
               </li>
             {% endif %}
           {% else %}

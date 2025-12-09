@@ -1,33 +1,36 @@
 {% extends "reservas/base.html" %}
 {% block title %}Mis Mascotas - CaninosLook{% endblock %}
 {% block content %}
-  <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>🐾 Mis Mascotas</h2>
-      <a href="{% url 'registrar_perro' %}" class="btn btn-primary">Registrar nueva mascota</a>
-    </div>
-
-    {% if mascotas %}
-      <div class="row g-3">
-        {% for m in mascotas %}
-          <div class="col-12 col-md-6">
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h5 class="card-title">{{ m.nombre_can }}</h5>
-                <p class="mb-1"><strong>Raza:</strong> {{ m.raza_can }}</p>
-                <p class="mb-1"><strong>Tamaño:</strong> {{ m.tamano_can }}</p>
-                <p class="mb-3"><strong>Peso:</strong> {{ m.peso_can }} kg</p>
-                <div class="d-flex gap-2">
-                  <a href="{% url 'editar_mascota' m.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
-                  <a href="{% url 'eliminar_mascota' m.pk %}" class="btn btn-outline-danger btn-sm">Eliminar</a>
+<div class="mx-auto mb-4" style="width: 70%; max-width: 350px;">
+    <a href="{% url 'registrar_perro' %}" class="btn btn-outline-secondary w-100">🐶➕ Añadir mascota</a>
+</div>
+  <div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
+    <div class="card col-12 col-md-10 col-lg-8 p-4 shadow-sm">
+      <h2 class="mb-4 text-center">🐾 Mis Mascotas</h2>
+      <div class="card-body">
+        {% if mascotas %}
+          <div class="row g-3">
+            {% for m in mascotas %}
+              <div class="col-12 col-md-6">
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <h5 class="card-title">{{ m.nombre_can }}</h5>
+                    <p class="mb-1"><strong>Raza:</strong> {{ m.raza_can }}</p>
+                    <p class="mb-1"><strong>Tamaño:</strong> {{ m.tamano_can }}</p>
+                    <p class="mb-3"><strong>Peso:</strong> {{ m.peso_can }} kg</p>
+                    <div class="d-flex gap-2">
+                      <a href="{% url 'editar_mascota' m.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+                      <a href="{% url 'eliminar_mascota' m.pk %}" class="btn btn-outline-danger btn-sm">Eliminar</a>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            {% endfor %}
           </div>
-        {% endfor %}
+        {% else %}
+          <div class="alert alert-info">No has registrado mascotas aún.</div>
+        {% endif %}
       </div>
-    {% else %}
-      <div class="alert alert-info">No has registrado mascotas aún.</div>
-    {% endif %}
+    </div>
   </div>
 {% endblock %}

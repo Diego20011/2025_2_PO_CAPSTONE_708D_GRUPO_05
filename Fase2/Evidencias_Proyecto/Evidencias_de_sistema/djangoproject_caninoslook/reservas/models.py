@@ -33,7 +33,7 @@ class Canino(models.Model):
     id_canino = models.AutoField(primary_key=True)
     nombre_can = models.CharField("Nombre", max_length=20)
     fecha_nac_can = models.DateField("Fecha de nacimiento")
-    raza_can = models.CharField("Raza", max_length=15)
+    raza_can = models.CharField("Raza", max_length=30)
     peso_can = models.PositiveIntegerField("Peso (kg)")
     tamano_can = models.CharField("Tamaño", max_length=10, choices=tamaño_choices)
     cuidados_esp_can = models.TextField("Cuidados especiales", blank=True, null=True)

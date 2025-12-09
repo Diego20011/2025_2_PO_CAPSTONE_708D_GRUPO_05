@@ -11,14 +11,14 @@
   {% endif %}
   {# Reservas futuras #}
 {% if reservas %}
-  <h3 class="mb-4">🗓️ Próximas reservas de {{ cliente.nombres_cli }}</h3>
+  <h3 class="mb-4"><a href="{% url 'ver_reservas' %}" class="text-decoration-none text-reset link-primary">🗓️ Mis reservas <span style="opacity:.7;">🔗</span></a></h3>
   {% for f in reservas %}
     <div class="card mb-3 shadow-sm">
       <div class="card-body">
-        <h5 class="card-title">{{ f.servicio_res }}</h5>
-        <p><strong>🐶 Mascota:</strong> {{ f.canino_id_res.nombre_can }}</p>
-        <p><strong>📅 Fecha:</strong> {{ f.fecha_res }} | <strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
-        <p><strong>💳 Medio de pago:</strong> {{ f.medio_pago_res }}</p>
+        <h5 class="card-title mb-4">🐶 {{ f.canino_id_res.nombre_can }}</h5>
+        <p><strong>🧾 Servicio/s:</strong> {{ f.servicio_res }}</p>
+        <p><strong>📅 Fecha:</strong> {{ f.fecha_res }}</p>
+        <p><strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
         <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
         <p><strong>Estado de pago:</strong>
           {% if f.confirm_pago_res %}
@@ -39,7 +39,7 @@
 
 
   {# Sección de mascotas #}
-<h3 class="mt-5">🐾 Mis Mascotas</h3>
+<h3 class="mt-4 mb-4"><a href="{% url 'mis_mascotas' %}" class="text-decoration-none text-reset link-primary">🐾 Mis Mascotas <span style="opacity:.7;">🔗</span></a></h3>
 {% if mascotas %}
   <div class="row g-3">
     {% for m in mascotas %}

@@ -17,7 +17,7 @@ REGEX_CUIDADOS = r"^[0-9A-Za-zÁÉÍÓÚáéíóúÑñ \t\n¡!¿?.-]*$"
 TAMANOS_VALIDOS = ["Pequeño", "Mediano", "Grande"]
 
 RAZAS_CANINAS = [
-    "Labrador Retriever", "Pastor Alemán", "Golden Retriever", "Bulldog Francés", "Beagle",
+    "Selecciona la raza", "Mestizo/Quiltro", "Labrador Retriever", "Pastor Alemán", "Golden Retriever", "Bulldog Francés", "Beagle",
     "Poodle", "Chihuahua", "Boxer", "Pitbull", "Shih Tzu", "Dálmata", "Cocker Spaniel",
     "Border Collie", "Husky Siberiano", "Rottweiler", "Doberman", "Akita", "Bichón Frisé",
     "Terrier", "Maltés", "Pug", "Samoyedo", "Shar Pei", "Setter Irlandés", "San Bernardo"
@@ -133,14 +133,18 @@ class RegistroDeCaninoForm(forms.ModelForm):
         if edad > 25:
             raise ValidationError("El perro no puede tener más de 25 años.")
         return fecha_nac
+
+    def clean_raza_can(self):
+        raza = self.cleaned_data.get('raza_can')
+        if raza == "Selecciona la raza":
+            raise ValidationError("Por favor selecciona la raza de tu perr@.")
+        return raza
+
     def clean_peso_can(self):
         peso = self.cleaned_data.get('peso_can')
         if peso <= 0 or peso > 99:
             raise ValidationError("El peso debe ser un número entre 1 y 99 kg.")
         return peso
-
-
-
 
     def clean_tamano_can(self):
         tamaño = self.cleaned_data.get('tamano_can')
