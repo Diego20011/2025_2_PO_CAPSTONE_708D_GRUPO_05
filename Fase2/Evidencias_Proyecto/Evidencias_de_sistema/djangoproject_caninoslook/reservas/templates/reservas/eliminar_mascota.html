@@ -6,12 +6,12 @@
       <h2 class="mb-3">Eliminar Mascota</h2>
       <p>¿Estás seguro que deseas eliminar a <strong>{{ canino.nombre_can }}</strong>?</p>
       {% if tiene_reservas_futuras %}
-        <div class="alert alert-warning">Esta mascota tiene reservas futuras, no se puede eliminar.</div>
+        <div class="alert alert-warning">Esta mascota tiene reservas futuras, al eliminarla se cancelarán las reservas asociadas.</div>
       {% endif %}
       <form method="post">
         {% csrf_token %}
         <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-danger" {% if tiene_reservas_futuras %}disabled{% endif %}>Eliminar</button>
+          <button type="submit" class="btn btn-danger">Eliminar</button>
           <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-secondary">Cancelar</a>
         </div>
       </form>

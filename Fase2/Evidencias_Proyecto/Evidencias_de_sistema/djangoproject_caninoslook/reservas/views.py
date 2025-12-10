@@ -1,3 +1,4 @@
+import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib import messages
@@ -360,18 +361,35 @@ def eliminar_mascota(request, pk):
         canino_id_res_id=canino.pk,
         fecha_res__gte=timezone.localdate()
     ).exists()
+    tiene_reservas_pasadas = Reserva.objects.filter(
+        canino_id_res_id=canino.pk,
+        fecha_res__lte=timezone.localdate()
+    ).exists()
 
     if request.method == "POST":
-        if tiene_reservas_futuras:
-            messages.error(request, "No puedes eliminar esta mascota: tiene reservas futuras.")
-        else:
+        if tiene_reservas_futuras and not tiene_reservas_pasadas:
+            reservasF = Reserva.objects.filter(canino_id_res_id=canino.pk, fecha_res__gte=timezone.localdate())
+            for rf in reservasF:
+                rf.delete()
+            canino.delete()
+            messages.success(request, "Mascota eliminada correctamente ✅, Reservas asociadas canceladas.")
+        if tiene_reservas_pasadas:
+            canino.eliminado_can = True
+            canino.save()
+            if tiene_reservas_futuras:
+                reservasF = Reserva.objects.filter(canino_id_res_id=canino.pk, fecha_res__gte=timezone.localdate())
+                for rf in reservasF:
+                    rf.delete()
+                messages.success(request, "Reservas asociadas canceladas ✅")
+            messages.success(request, "Mascota eliminada correctamente ✅")
+        if not tiene_reservas_futuras and not tiene_reservas_pasadas:
             canino.delete()
             messages.success(request, "Mascota eliminada correctamente ✅")
         return redirect("home")
 
     return render(request, "reservas/eliminar_mascota.html", {
         "canino": canino,
-        "tiene_reservas_futuras": tiene_reservas_futuras
+        "tiene_reservas_futuras": tiene_reservas_futuras,
     })
 
 def home(request):
@@ -387,7 +405,7 @@ def home(request):
     cliente = get_object_or_404(Cliente, pk=cliente_id)
     reserva_id = request.session.pop("ultima_reserva_id", None)
     ultima_reserva = Reserva.objects.filter(pk=reserva_id, cliente_id_res_id=cliente_id).first() if reserva_id else None
-    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id).order_by("nombre_can")
+    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id, eliminado_can=False).order_by("nombre_can")
 
 
     return render(request, "reservas/home.html", {
@@ -558,7 +576,7 @@ def logout_cliente(request):
 @requiere_login
 def mis_mascotas(request):
     cliente_id = request.session["cliente_id"]
-    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id).order_by("nombre_can")
+    mascotas = Canino.objects.filter(cliente_id_can_id=cliente_id, eliminado_can=False).order_by("nombre_can")
     return render(request, "reservas/mis_mascotas.html", {"mascotas": mascotas})
 
 @requiere_login
