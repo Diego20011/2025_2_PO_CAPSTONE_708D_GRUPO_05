@@ -2,6 +2,35 @@
 {% block title %}Reserva de hora - CaninosLook{% endblock %}
 
 {% block content %}
+  {% if max4resTransf > 4 and paso1display != 1 and medioPago != "Pago_Online_Khipu" %}
+    <div class="alert alert-warning d-flex align-items-start" role="alert">
+      <span class="me-2 fs-3">⚠️</span>
+      <span>
+        <strong>No puedes reservar.</strong><br>
+        Tienes <strong>más de 4 reservas con pago o abono pendiente</strong>. 
+        Para poder agendar una nueva reserva, primero debes realizar el abono o pago pendiente.
+      </span>
+    </div>
+  {% endif %}
+  {% if paso1display != 1 and medioPago == "Transferencia" %}
+    <div class="alert alert-warning d-flex align-items-start" role="alert">
+      <span class="me-2 fs-3">⚠️</span>
+      <span>
+        <strong>Importante:</strong> Si pagas con transferencia, deberás esperar la confirmación del pago para agendar nuevamente.  
+        El proceso puede tardar <strong>horas o días</strong>.
+      </span>
+    </div>
+  {% endif %}
+  {% if paso1display != 1 and medioPago == "Pago_Online_Khipu" and reservaKhipu1 %}
+    <div class="alert alert-warning d-flex align-items-start" role="alert">
+      <span class="me-2 fs-3">⚠️</span>
+      <span>
+        <strong>No puedes reservar.</strong><br>
+        Tienes <strong>1 reserva con medio de pago online pendiente</strong>.
+        Para poder agendar una nueva reserva, primero debes realizar el abono o pago pendiente.
+      </span>
+    </div>
+  {% endif %}
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="card col-12 col-md-8 col-lg-6 p-4 shadow-sm">
       <h2 class="mb-4">📅 Reserva de hora</h2>
@@ -33,21 +62,40 @@
           <label for="fecha_reserva" class="form-label">Fecha</label>
           <input type="date" name="fecha_reserva" id="fecha_reserva" class="form-control" value="{{ fechaDeseada }}" required>
         </div>
-        <button type="submit" name="continuar" value="1" class="btn btn-primary w-100">Continuar</button>
+        <div class="mb-3">
+          <label for="medioPago" class="form-label">Medio de pago</label>
+          <select name="medioPago" id="medioPago" class="form-select" required>
+            <option value="">Seleccionar</option>
+            <option value="Pago_Online_Khipu">Tarjeta / pago en línea (vía khipu)</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="Efectivo">Efectivo</option>
+          </select>
+        </div>
+        <button type="submit" name="continuar" value="1" class="mb-3 btn btn-primary w-100" {% if faltapagar %}disabled{% endif %}>Continuar</button>
+        {% if faltapagar %}
+          <div class="alert alert-danger d-flex align-items-start" role="alert">
+            <div class="me-3 fs-3">🚫</div>
+            <div>
+              <strong>No puedes reservar.</strong><br>
+              Debes pagar tus citas anteriores antes de agendar nuevamente o esperar la confirmación de pago si ya lo hiciste.
+            </div>
+          </div>
+        {% endif %}
 
       {% else %}
         <!-- Paso 2 -->
-        <form method="post" action="{% url 'reservar_hora' %}">
+        <form method="post">
           <input type="hidden" name="servicio" value="{{ servicioConcat }}">
           <input type="hidden" name="fecha_reserva" value="{{ fechaDeseada }}">
+          <input type="hidden" name="medioPago" value="{{ medioPago }}">
           {% csrf_token %}
           <h5>Selecciona hora y mascota</h5>
           <div class="mb-3">
             <label for="hora" class="form-label">Horario disponible</label>
             {% for h in horas_disponibles %}
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="hora" id="hora_{{ forloop.counter }}" value="{{ h }}" required>
-                <label class="form-check-label" for="hora_{{ forloop.counter }}">{{ h }}</label>
+                <input class="form-check-input" type="radio" name="hora" id="hora_{{ forloop.counter }}" value="{{ h }}" required {% if h < horaActual and h == fechaActual %}hidden disabled{% endif %}>
+                <label class="form-check-label" for="hora_{{ forloop.counter }}" {% if h < horaActual and h == fechaActual %}hidden disabled{% endif %}>{{ h }}</label>
               </div>
             {% endfor %}
           </div>
@@ -60,7 +108,12 @@
               {% endfor %}
             </select>
           </div>
-          <button type="submit" name="reservar_hora" class="btn btn-success w-100">Confirmar reserva</button>
+          <!--<button type="submit" name="reservar_hora" class="btn btn-success w-100" {% if medioPago != "Pago_Online" and max2resEfectivo >= 2 or medioPago != "Pago_Online" and faltapagar or medioPago != "Pago_Online" and max1resTransf %}disabled{% endif %}>Confirmar reserva</button>-->
+          <button type="submit" value="1" name="reservar_hora" class="btn btn-success w-100" {% if faltapagar or max4resTransf > 4 or medioPago == "Pago_Online_Khipu" and reservaKhipu1 %}disabled{% endif %}>Confirmar reserva</button>
+          {% if medioPago == "Pago_Online" %}
+            <!--Hay que hacer un botón con el enlace de khipu, primero hay que generarlo, pienso que primero se crea la reserva y luego confirmamos el pago, 
+            si no se confirma en 10 minutos se cancela la transacción por khipu (nose como cancelar la transacción creada)-->
+          {% endif %}
         </form>
       {% endif %}
     </div>

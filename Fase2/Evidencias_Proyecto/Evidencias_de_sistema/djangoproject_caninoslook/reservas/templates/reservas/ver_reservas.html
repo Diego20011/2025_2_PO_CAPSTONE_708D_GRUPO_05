@@ -6,20 +6,20 @@
     <div class="card col-12 col-md-10 col-lg-8 p-4 shadow-sm">
       {% if confCancelarR == 0 and pagar == 0 %}
         <h2 class="mb-4 text-center">📋 Mis Reservas</h2>
+        <a href="{% url 'historial_reservas' %}" class="mb-3 btn btn-outline-secondary">Registro de reservas</a>
       {% elif confCancelarR == 1 %}
         <h2 class="mb-4 text-center">📋Cancelar reserva❌</h2>
       {% elif pagar == 1 %}
         <h2 class="mb-4 text-center">📋Pagar reserva💵</h2>
       {% endif %}
-
       {% if ultima_reserva %}
         <div class="alert alert-success">
           <strong>Reserva reciente:</strong> {{ ultima_reserva.servicio_res }} el {{ ultima_reserva.fecha_res }} a las {{ ultima_reserva.hora_res }} para {{ ultima_reserva.canino_id_res.nombre_can }}.
         </div>
       {% endif %}
 
-      {% if reservasACancelar %}
-        {% for f in reservasACancelar %}
+      {% if reservasADesplegar %}
+        {% for f in reservasADesplegar %}
           <div class="card mb-3 shadow-sm">
             <div class="card-body">
               <h5 class="card-title mb-4">🐶 {{ f.canino_id_res.nombre_can }}</h5>
@@ -30,6 +30,12 @@
               <p class="d-flex align-items-center gap-2"><strong>Estado de pago:</strong>
                 {% if f.confirm_pago_res %}
                   <span class="badge bg-success">Pagado</span>
+                {% elif f.medio_pago_res == "Efectivo" and f.combineFyH < fechayhoraActual %}
+                  <span class="badge bg-secondary">En espera</span>
+                {% elif f.medio_pago_res == "Transferencia" and f.verificando or f.medio_pago_res == "Pago_Online_khipu" and f.verificando %}
+                  <span class="badge" style="background-color: #d6d8db; color: #495057;">⏳Verificando</span>
+                {% elif f.abono and not f.confirm_pago_res %}
+                  <span class="badge" style="background-color: #dbeafe; color: #1e40af;">Abonado</span>
                 {% else %}
                   <span class="badge" style="background-color: #f7c600; color: #ff0000;">Sin pagar</span>
                 {% endif %}
@@ -39,8 +45,16 @@
                 {% if confCancelarR == 0 and pagar == 0%}
                   <form method="get">
                     <div class="d-flex gap-2">
-                      <button type="submit" name="confCancelarR" class="btn btn-danger btn-sm flex-fill w-50" value="{{ f.pk }}">Cancelar reserva</button>
-                      <button type="submit" name="pagar" class="btn btn-success btn-sm flex-fill w-50" value="{{ f.pk }}">Pagar</button>
+                      {% if f.combineFyH > fechayhoraActual and not f.verificando and not f.abono or f.combineFyH < fechayhoraActual and f.verificando and f.medio_pago_res == "Pago_Online_Khipu" %}
+                        <button type="submit" name="confCancelarR" class="btn btn-danger btn-sm flex-fill w-50" value="{{ f.pk }}">Cancelar reserva</button>
+                      {% endif %}
+                      {% if f.combineFyH > fechayhoraActual and not f.abono and f.medio_pago_res == "Transferencia" and not f.verificando %}
+                        <button type="submit" name="pagar" class="btn btn-success btn-sm flex-fill w-50" value="{{ f.pk }}">Pagar abono</button>
+                      {% elif f.combineFyH < fechayhoraActual and not f.verificando and f.medio_pago_res != "Efectivo" %}
+                        <button type="submit" name="pagar" class="btn btn-success btn-sm flex-fill w-50" value="{{ f.pk }}">Pagar</button>
+                      {% elif f.combineFyH > fechayhoraActual and f.verificando and f.medio_pago_res == "Pago_Online_Khipu" and not f.abono %} <!--Botón especial para las personas que no puedieron pagar (se les cerró la página)-->
+                        <a href="{{ f.enlacePagar }}" class="btn btn-sm btn-success w-50" target="_blank" rel="noopener noreferrer">Pagar abono</a>
+                      {% endif %}
                     </div>
                   </form>
                 {% elif confCancelarR == 1 %}
@@ -53,30 +67,73 @@
                     </div>
                   </form>
                 {% elif pagar == 1 %}
-                  <form method="post" action="{% url 'ver_reservas' %}">
+                  <hr>
+                  <form method="post">
                     {% csrf_token %}
+                    <p><strong>Selecciona mét. pago:</strong></p>
                     <select name="medioPago" id="medioPago" class="form-select mb-3" required>
-                      <option value="">Método de pago</option>
-                      <option value="Tarjeta">Tarjeta</option>
+                      {% if not medioPago %}
+                        <option value="">Método de pago</option>
+                      {% else %}
+                        <option value="">{{ medioPago }}</option>
+                      {% endif %}
+                      <option value="Pago_Online_khipu" disabled>Tarjeta / Pago Online</option>
                       <option value="Transferencia">Transferencia</option>
                     </select>
-                    <div class="d-flex gap-2">
-                      <input type="hidden" name="reserva_id" value="{{ f.pk }}">
-                      <button type="submit" name="pagarContinuar" class="btn btn-success btn-sm flex-fill">Continuar</button>
-                      <a href="{% url 'ver_reservas' %}" class="btn btn-outline-secondary btn-sm flex-fill text-center" style="text-align: center;">Volver</a>
-                    </div>
+                    {% if not medioPago %}
+                      <div class="mb-3 d-flex gap-2">
+                        <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+                        <a href="{% url 'ver_reservas' %}" class="btn btn-outline-secondary btn-sm flex-fill text-center" style="text-align: center;">Volver</a>
+                        <button type="submit" name="pagarContinuar" class="btn btn-success btn-sm flex-fill" onclick="location.href='#medioPago'">Continuar</button>
+                      </div>
+                    {% endif %}
                   </form>
+                  {% if medioPago == "Transferencia" %}
+                    <hr>
+                    <h5 class="mb-3">🏦 Datos para transferencia</h5>
+                    <div class="alert alert-warning mt-3" role="alert">
+                      <span class="me-2 d-block fs-3 text-center mb-2">⚠️</span>
+                      <span>
+                        <strong>Importante:</strong> Si pagas con transferencia, deberás esperar la confirmación del pago para agendar nuevamente.
+                        El proceso puede tardar <strong>horas o días</strong>. <br> <br>
+                        <strong>Recomendación:</strong> si necesitas agendar para <strong>más de un perro en poco tiempo</strong>, prefiere <strong>pago online</strong> para evitar esperas.
+                      </span>
+                    </div>
+                    <div class="alert alert-info mt-3" role="alert">
+                      <span class="d-block fs-3 text-center mb-2">ℹ️</span>
+                      <span>
+                        Por favor realiza la transferencia <strong>exclusivamente con los datos indicados</strong> en esta sección.  
+                        Es <strong>obligatorio</strong> que incluyas en el mensaje o comentario de la transferencia el <strong>ID de tu reserva ({{ reserva_idPagar }})</strong>, ya que esto permite validar y confirmar tu pago correctamente.
+                      </span>
+                    </div>
+                    <p class="mb-1"><strong>Banco:</strong> Banco Estado</p>
+                    <p class="mb-1"><strong>Tipo Cuenta:</strong> Vista o Rut</p>
+                    <p class="mb-1"><strong>Rut:</strong> 20.721.973-8</p>
+                    <p class="mb-1"><strong>N° de Cuenta:</strong> 0020721973</p>
+                    <p class="mb-1"><strong>Nombre:</strong> Agustin Valenzuela</p>
+                    <p class="mb-1"><strong>Correo:</strong> agustin.ale.vv@gmail.com</p>
+                    <p class="mb-1"><strong>Monto:</strong> ${{ f.valor_res }}</p>
+                    <p class="mb-3"><strong>Mensaje o comentario:</strong> {{ reserva_idPagar }}</p>
+                    <div class="alert alert-warning py-2">
+                      ⚠️ Si no ingresas el mensaje correcto en la transferencia, no será posible validarla automáticamente.
+                    </div>
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="reserva_id" value="{{ f.pk }}">
+                      <button type="submit" name="confirmar_transferencia" class="btn btn-success w-100" value="1">✔️ Listo, transferí</button>
+                    </form>
+                  {% endif %}                 
                 {% endif %}
               {% endif %}
             </div>
           </div>
         {% endfor %}
-        <div class="d-flex justify-content-between mt-3 gap-2">
+        <!--<div class="d-flex justify-content-between mt-3 gap-2">
           <a href="{% url 'historial_reservas' %}" class="btn btn-primary">Ver historial de reservas pasadas</a>
           <a href="{% url 'home' %}" class="btn btn-secondary">Volver al inicio</a>
-        </div>
+        </div>-->
       {% else %}
-        <div class="alert alert-info text-center">No hay reservas a futuro.</div>
+        <div class="alert alert-info text-center">No hay reservas pendientes de pago.</div>
       {% endif %}
     </div>
   </div>

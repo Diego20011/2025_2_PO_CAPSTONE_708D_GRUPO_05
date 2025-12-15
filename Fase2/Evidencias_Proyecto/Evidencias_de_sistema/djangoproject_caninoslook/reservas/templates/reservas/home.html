@@ -16,17 +16,23 @@
     <div class="card mb-3 shadow-sm">
       <div class="card-body">
         <h5 class="card-title mb-4">🐶 {{ f.canino_id_res.nombre_can }}</h5>
-        <p><strong>🧾 Servicio/s:</strong> {{ f.servicio_res }}</p>
-        <p><strong>📅 Fecha:</strong> {{ f.fecha_res }}</p>
-        <p><strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
-        <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
-        <p><strong>Estado de pago:</strong>
-          {% if f.confirm_pago_res %}
-            <span class="badge bg-success">Pagado</span>
-          {% else %}
-            <span class="badge bg-danger">Sin pagar</span>
-          {% endif %}
-        </p>
+          <p><strong>🧾 Servicio/s:</strong> {{ f.servicio_res }}</p>
+          <p><strong>📅 Fecha:</strong> {{ f.fecha_res|date:"d/m/Y" }}</p>
+          <p><strong>🕒 Hora:</strong> {{ f.hora_res }}</p>
+          <p><strong>💲 Valor:</strong> ${{ f.valor_res }}</p>
+          <p class="d-flex align-items-center gap-2"><strong>Estado de pago:</strong>
+            {% if f.confirm_pago_res %}
+              <span class="badge bg-success">Pagado</span>
+            {% elif f.medio_pago_res == "Efectivo" and f.combineFyH < fechayhoraActual %}
+              <span class="badge bg-secondary">En espera</span>
+            {% elif f.medio_pago_res == "Transferencia" and f.verificando or f.medio_pago_res == "Pago_Online_khipu" and f.verificando %}
+              <span class="badge" style="background-color: #d6d8db; color: #495057;">⏳Verificando</span>
+            {% elif f.abono and not f.confirm_pago_res %}
+              <span class="badge" style="background-color: #dbeafe; color: #1e40af;">Abonado</span>
+            {% else %}
+              <span class="badge" style="background-color: #f7c600; color: #ff0000;">Sin pagar</span>
+            {% endif %}
+          </p>
       </div>
     </div>
   {% endfor %}

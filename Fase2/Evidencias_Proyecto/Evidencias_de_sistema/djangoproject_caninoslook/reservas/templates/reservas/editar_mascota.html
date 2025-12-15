@@ -8,8 +8,8 @@
         {% csrf_token %}
         {{ form.as_p }}
         <div class="d-flex gap-2 mt-3">
-          <button type="submit" class="btn btn-primary w-100">Guardar cambios</button>
           <a href="{% url 'mis_mascotas' %}" class="btn btn-outline-secondary w-100">Cancelar</a>
+          <button type="submit" class="btn btn-success w-100">Guardar</button>
         </div>
       </form>
     </div>

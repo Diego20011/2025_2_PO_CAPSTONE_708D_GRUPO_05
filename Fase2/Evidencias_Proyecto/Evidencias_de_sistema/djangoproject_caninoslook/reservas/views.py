@@ -1,10 +1,10 @@
-import time
+import time, requests, os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -44,7 +44,7 @@ SERVICIOS_VALIDOS = {
     "Corte de pelo": "Corte de pelo",
     "Corte de uñas": "Corte de uñas",
     "Limpieza de oido": "Limpieza de oido",
-    "Estética full": "Estética full"
+    #"Estética full": "Estética full" Lo comenté porque no pude hacer la validación de que se escogía los 4 anteriores no va a poder seleccionar este. Sale más fácil así.
 }
 
 
@@ -143,36 +143,36 @@ def calcular_horas_disponibles(servicioConcat, reservas_existentes):
                     break
 
             if es_valido:
-                horas_disponibles.append(lista_horas_full[i])
+                horas_disponibles.append(datetime.strptime(lista_horas_full[i], "%H:%M:%S").time())
 
     # Si por algún motivo no se pudo calcular (o no hay servicio todavía),
     # devolvemos la grilla completa como fallback
     return horas_disponibles or lista_horas_full
 
 
-def obtener_precio_total(servicio_str, tamano_can):
-    """
-    Calcula el valor de la reserva según:
-    - tamaño del canino (usa PRECIOS como base)
-    - cantidad de servicios seleccionados
-    """
-    if not servicio_str:
-        return 0
+# def obtener_precio_total(servicio_str, tamano_can):
+#     """
+#     Calcula el valor de la reserva según:
+#     - tamaño del canino (usa PRECIOS como base)
+#     - cantidad de servicios seleccionados
+#     """
+#     if not servicio_str:
+#         return 0
 
-    partes = [p.strip() for p in servicio_str.split("+") if p.strip()]
-    servicios_validos = [p for p in partes if p in SERVICIOS_VALIDOS]
+#     partes = [p.strip() for p in servicio_str.split("+") if p.strip()]
+#     servicios_validos = [p for p in partes if p in SERVICIOS_VALIDOS]
 
-    if not servicios_validos:
-        return 0
+#     if not servicios_validos:
+#         return 0
 
-    # Precio base según tamaño del perro
-    base = PRECIOS.get(tamano_can, 20000)
+#     # Precio base según tamaño del perro
+#     base = PRECIOS.get(tamano_can, 20000)
 
-    # Versión simple: multiplicar por la cantidad de servicios
-    cantidad = len(servicios_validos)
-    valor_total = base * cantidad
+#     # Versión simple: multiplicar por la cantidad de servicios
+#     cantidad = len(servicios_validos)
+#     valor_total = base * cantidad
 
-    return valor_total
+#     return valor_total
 
 # ==========================
 # Vistas
@@ -337,19 +337,21 @@ def login_cliente(request):
 @requiere_login
 def registrar_canino(request):
     cliente_id = request.session["cliente_id"]
-    editar_id = request.GET.get("editar")
     canino = None
+    
+    numMasotasCliActivos = Canino.objects.filter(cliente_id_can_id=cliente_id, eliminado_can=False).count()
+    numMasotasCliTotal = Canino.objects.filter(cliente_id_can_id=cliente_id).count()
 
-    if editar_id:
-        canino = get_object_or_404(Canino, pk=editar_id, cliente_id_can_id=cliente_id)
-
+    print(numMasotasCliActivos)
+    print(numMasotasCliTotal)
     form = RegistroDeCaninoForm(request.POST or None, instance=canino)
     if request.method == "POST" and form.is_valid():
-        nuevo_canino = form.save(commit=False)
-        nuevo_canino.cliente_id_can_id = cliente_id
-        nuevo_canino.save()
-        messages.success(request, "Mascota guardada correctamente ✅")
-        return redirect("home")
+        if numMasotasCliActivos < 6 and numMasotasCliTotal < 51:
+            nuevo_canino = form.save(commit=False)
+            nuevo_canino.cliente_id_can_id = cliente_id
+            nuevo_canino.save()
+            messages.success(request, "Mascota guardada correctamente ✅")
+            return redirect("home")
 
     return render(request, "reservas/reg_perro.html", {"form": form, "canino": canino})
 
@@ -397,10 +399,15 @@ def home(request):
     if not cliente_id:
         return render(request, "reservas/home_no_registrado.html")
 
+    fechayhoraActual = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
+
     reservas = Reserva.objects.filter(
         cliente_id_res=cliente_id,
         fecha_res__gte=timezone.localdate()
     ).order_by("fecha_res")
+
+    for r in reservas:
+        r.combineFyH = datetime.combine(r.fecha_res, r.hora_res).strftime("%Y-%m-%d %H:%M:%S")
 
     cliente = get_object_or_404(Cliente, pk=cliente_id)
     reserva_id = request.session.pop("ultima_reserva_id", None)
@@ -413,44 +420,78 @@ def home(request):
         "cliente": cliente,
         "mascotas": mascotas,
         "ultima_reserva": ultima_reserva,
+        "fechayhoraActual": fechayhoraActual
     })
 
 @requiere_login
 def reserva(request):
     cliente_id = request.session["cliente_id"]
-    perros_cli = Canino.objects.filter(cliente_id_can_id=cliente_id)
+    perros_cli = Canino.objects.filter(cliente_id_can_id=cliente_id, eliminado_can=False)
     if not perros_cli.exists():
         messages.warning(request, "Debes registrar al menos una mascota antes de hacer una reserva.")
         return redirect("registrar_perro")
 
+    horaActual = timezone.localtime().time()
+    #print(horaActual)
+    fechaActual = timezone.localtime().date()
+
+    pagoEOC = os.environ.get("pagoEOC")
+    if request.GET.get("pagoEOC") == pagoEOC and request.GET.get("ccl"):
+        EOC = Reserva.objects.get(cliente_id_res_id=cliente_id, medio_pago_res="Pago_Online_Khipu", abono=False)
+        EOC.delete()
+
+    #Damos plazo de lo que queda del día para pagar por eso el lt (fecha_res__lt) y no lte.
+    faltapagar = Reserva.objects.filter(cliente_id_res_id=cliente_id, fecha_res__lt=timezone.localtime().date(), confirm_pago_res=False).exists()
+    #Máx 2 reservas con medio de pago Efectivo por pagar.
+    max2resEfectivo = Reserva.objects.filter(cliente_id_res_id=cliente_id, medio_pago_res="Efectivo", confirm_pago_res=False).count()
+    #Máx 1 reserva con medio de pago transferencia sin abonar.
+    max4resTransf = Reserva.objects.filter(cliente_id_res_id=cliente_id, fecha_res__gte=timezone.localtime().date(), 
+                                        abono=False).exclude(medio_pago_res="Pago_Online_Khipu").count()
+    #print(max4resTransf)                        
+
+    reservaKhipu1 = Reserva.objects.filter(cliente_id_res_id=cliente_id, medio_pago_res="Pago_Online_Khipu", abono=False).exists()
+    #print("aaaaaaaa:", )#olaolaola
+
+    medioPago = request.GET.get("medioPago")
+    
     servicios_seleccionados = request.GET.getlist("servicio")
     servicios_seleccionados = [s for s in servicios_seleccionados if s in SERVICIOS_VALIDOS]
 
     fechaDeseada = request.GET.get("fecha_reserva")
+    #print(fechaDeseadaDt.weekday())
     servicioConcat = " + ".join(servicios_seleccionados)
 
     reservas_existentes = Reserva.objects.filter(fecha_res=fechaDeseada) if fechaDeseada else Reserva.objects.none()
     horas_disponibles = calcular_horas_disponibles(servicioConcat, reservas_existentes)
 
+    #for n in horas_disponibles:
+    #    horasDdt = 
+
     paso1display = 1
     if request.GET.get("continuar") == "1" and servicios_seleccionados and fechaDeseada:
-        paso1display = 0
-    if request.GET.get("volver") == "1":
-        paso1display = 1
+        fechaDeseadaDt = datetime.strptime(fechaDeseada, "%Y-%m-%d").date()
+        if datetime.strptime(fechaDeseada, "%Y-%m-%d").date() >= fechaActual and fechaDeseadaDt.weekday() < 5:
+            paso1display = 0
+        else:
+            messages.warning(request, "No puedes escoger una fecha que ya pasó y/o fines de semana.")
+            return redirect("reservar_hora")
 
     if request.method == "POST" and "reservar_hora" in request.POST:
         servicio = (request.POST.get("servicio") or "").strip()
         fecha_str = request.POST.get("fecha_reserva")
         hora_str = request.POST.get("hora")
         perro_id = request.POST.get("perro")
+        medioPago2 = request.POST.get("medioPago")
 
         if not servicio or not fecha_str or not hora_str or not perro_id:
             messages.error(request, "Todos los campos son obligatorios.")
-            return redirect("reservar_hora")
-
+            return redirect(reservar_hora)
         try:
             fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-            hora_dt = datetime.strptime(hora_str, "%H:%M:%S").time()
+            hora_dt = datetime.strptime(hora_str, "%H:%M").time()
+            if fecha_dt == fechaActual and hora_dt < horaActual:
+                messages.warning(request, "No puedes escoger una hora que ya pasó.")
+                return redirect(f"/reservar_hora/?servicio={servicio}&fecha_reserva={fecha_str}&medioPago={medioPago2}&continuar=1")
         except ValueError:
             messages.error(request, "Formato de fecha u hora inválido.")
             return redirect("reservar_hora")
@@ -459,7 +500,7 @@ def reserva(request):
 
         duracion = obtener_duracion_total(servicio)
 
-        valor_res = obtener_precio_total(servicio, perroReserva.tamano_can)
+        #valor_res = obtener_precio_total(servicio, perroReserva.tamano_can)
         if not duracion:
             messages.error(request, "Servicio inválido.")
             return redirect("reservar_hora")
@@ -492,19 +533,50 @@ def reserva(request):
                     servicio_res=servicio_db,
                     hora_res=hora_dt,
                     fecha_res=fecha_dt,
-                    medio_pago_res="Efectivo",
-                    valor_res=valor_res,
+                    medio_pago_res=medioPago2,
+                    valor_res=5000,
+                    abono=False,
+                    verificando=False,
                     confirm_pago_res=False,
                     cliente_id_res_id=cliente_id,
                     canino_id_res_id=perro_id,
 )
                 messages.success(request, "✅ Reserva creada correctamente")
                 request.session["ultima_reserva_id"] = reserva_nueva.pk
-                return redirect("home")
+
+                # fechayhoraActual = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
+                # if fin_nueva < fechayhoraActual:
+                #     subjectKhipu = f"Pago abono reserva: {str(reserva_nueva)}"
+                # else:
+                #     subjectKhipu = f"Pago reserva: {str(reserva_nueva)}"
+
+                if medioPago2 == "Pago_Online_Khipu":
+                    url = "https://payment-api.khipu.com/v3/payments"
+                    payload = {
+                        "amount": 5000,
+                        "currency": "CLP",
+                        "subject": f"Abono reserva {str(reserva_nueva)}",
+                        "return_url": "https://caninoslook.onrender.com/ver_reservas",
+                        "cancel_url": f"https://caninoslook.onrender.com/reservar_hora/?pagoEOC={pagoEOC}&ccl={cliente_id}",
+                        "payer_email": reserva_nueva.cliente_id_res.email_cli}
+                    headers = {
+                        "Content-Type": "application/json",
+                        "x-api-key": os.environ.get("x-api-key")}
+                    response = requests.post(url, json=payload, headers=headers)
+                    data = response.json()
+                    reserva_nueva.verificando = True
+                    reserva_nueva.idPago = data["payment_id"]
+                    reserva_nueva.save()
+                    #messages.success(request, f"Pago de {str(reserva_nueva)} en verificación.")
+                    return redirect(data["payment_url"])
+                else:
+                    return redirect("ver_reservas")
 
         except ValidationError as e:
             messages.error(request, e.message)
-        except IntegrityError:
+            #print("EEEEERROR",e)
+        except IntegrityError as a:
+            #print("EEEEERROR",a)
             messages.error(request, "💻💥 Error inesperado. Intenta de nuevo.")
 
     return render(request, "reservas/reserva.html", {
@@ -518,6 +590,13 @@ def reserva(request):
         "fechaD_formateada": "-".join(reversed(fechaDeseada.split("-"))) if fechaDeseada else "",
         "servicios_seleccionados": servicios_seleccionados,
         "SERVICIOS_VALIDOS": SERVICIOS_VALIDOS,
+        "faltapagar": faltapagar,
+        "max2resEfectivo": max2resEfectivo,
+        "medioPago": medioPago,
+        "max4resTransf": max4resTransf,
+        "reservaKhipu1": reservaKhipu1,
+        "horaActual": horaActual,
+        "fechaActual": fechaActual
     })
 
 
@@ -525,28 +604,71 @@ def reserva(request):
 @requiere_login
 def ver_reservas(request):
     cliente_id = request.session["cliente_id"]
-    fechaActual = timezone.localtime().date()
+    fechayhoraActual = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
     horaActual = timezone.localtime().time()
+    fechaActual = timezone.localtime().date() 
+    #print(fechaActual)
 
+    # devueltakhipu = False
+    # if request.GET.get("updateEstadoP"):
+    #     devueltakhipu = True
+
+    #     print("HOLAAA")
+
+    #curl https://api.fintoc.com/v1/accounts/ACCOUNT_ID/movements?link_token=YOUR_LINK_TOKEN -H "Authorization: YOUR_SECRET_API_KEY"
+    ACCOUNT_ID = os.environ.get("account-id")
+    LINK_TOKEN = os.environ.get("link-token")
+    SECRET_API_KEY = os.environ.get("secret-api-key")
+
+    url = f"https://api.fintoc.com/v1/accounts/{ACCOUNT_ID}/movements"
+    params = {"link_token": LINK_TOKEN}
+    headers = {"Authorization": SECRET_API_KEY}
+
+    response = requests.get(url, params=params, headers=headers)
+    data = response.json()
+    #print(data)
     confCancelarR=0
     pagar=0
     if request.GET.get("confCancelarR"):
         confCancelarR=1
-        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("confCancelarR"), cliente_id_res_id=cliente_id)
-        if not reservasACancelar.exists():
+        reservasADesplegar = Reserva.objects.filter(pk=request.GET.get("confCancelarR"), cliente_id_res_id=cliente_id)
+        if not reservasADesplegar.exists():
             raise Http404("Reserva no encontrada")
     elif request.GET.get("pagar"):
         pagar=1
-        reservasACancelar = Reserva.objects.filter(pk=request.GET.get("pagar"), cliente_id_res_id=cliente_id)
-        if not reservasACancelar.exists():
+        reservasADesplegar = Reserva.objects.filter(pk=request.GET.get("pagar"), cliente_id_res_id=cliente_id)
+        if not reservasADesplegar.exists():
             raise Http404("Reserva no encontrada")
     else:
-        reservasACancelar = Reserva.objects.filter(
-        Q(fecha_res__gt=fechaActual) |
-        Q(fecha_res=fechaActual, hora_res__gt=horaActual) |
-        Q(confirm_pago_res=0) | Q(confirm_pago_res=1),
-        cliente_id_res_id=cliente_id
-        ).order_by("confirm_pago_res", "fecha_res", "hora_res")
+        reservasADesplegar = Reserva.objects.filter(Q(confirm_pago_res=0) | Q(Q(fecha_res=fechaActual), Q(hora_res__lte=horaActual)),
+        cliente_id_res_id=cliente_id,).order_by("confirm_pago_res", "fecha_res", "hora_res")
+        #print(reservasADesplegar[0].unique_fecha_hora)
+        for r in reservasADesplegar:
+            r.combineFyH = datetime.combine(r.fecha_res, r.hora_res).strftime("%Y-%m-%d %H:%M:%S")
+            for m in data:
+                if m["comment"] and m["comment"].strip() == r.pk:
+                    if r.verificando and m["amount"] == 5000:
+                        r.abono = True
+                        r.verificando = False
+                        r.save()
+                    # elif r.verificando and m["amount"] == r.valor_res:
+                    #     r.confirm_pago_res = True
+                    #     r.verificando = False
+                    #     r.save()
+            if r.idPago and not r.abono:
+                r.enlacePagar = f"https://khipu.com/payment/info/{r.idPago}"
+                urlGet = "https://payment-api.khipu.com/v3/payments/" + r.idPago
+                headers = {"x-api-key": os.environ.get("x-api-key")}
+                response = requests.get(urlGet, headers=headers)
+                dataGetKhipu = response.json()
+                #print(dataGetKhipu["status"])
+                if dataGetKhipu["status"] == "done":
+                    r.abono = True
+                    r.verificando = False
+                    r.save()
+                else:
+                    messages.info(request, f"Transacción vía khipu pendiente, reserva: {r.canino_id_res.nombre_can}, {r.servicio_res}, {r.fecha_res}. \
+                    Si realizó el pago por favor recargue la página.")
 
     if request.method == "POST" and "cancelar_reserva" in request.POST:
         reserva = get_object_or_404(Reserva, pk=request.POST.get("reserva_id"), cliente_id_res_id=cliente_id)
@@ -554,14 +676,31 @@ def ver_reservas(request):
         messages.success(request, "Reserva cancelada correctamente ✅")
         return redirect("ver_reservas")
 
+    #Continuar pago
+    medioPago = request.POST.get("medioPago")
+    reserva_idPagar = request.POST.get("reserva_id")
+
+    #VerificarPago
+    if reserva_idPagar and request.POST.get("confirmar_transferencia"):
+        reservaPago = Reserva.objects.get(pk=reserva_idPagar, cliente_id_res_id=cliente_id)
+        reservaPago.verificando = True
+        reservaPago.medio_pago_res = "Transferencia"
+        reservaPago.save()
+        messages.success(request, "Pago en verificación.")
+        #print(reservaPago.verificando, reservaPago.hora_res)
+        return redirect("ver_reservas")
+
     reserva_id = request.session.pop("ultima_reserva_id", None)
     ultima_reserva = Reserva.objects.filter(pk=reserva_id, cliente_id_res_id=cliente_id).first() if reserva_id else None
 
     return render(request, "reservas/ver_reservas.html", {
-        "reservasACancelar": reservasACancelar,
+        "reservasADesplegar": reservasADesplegar,
+        "fechayhoraActual": fechayhoraActual,
         "ultima_reserva": ultima_reserva,
         "confCancelarR": confCancelarR,
-        "pagar": pagar
+        "pagar": pagar,
+        "medioPago": medioPago,
+        "reserva_idPagar": reserva_idPagar
     })
 
 def servicios(request):
@@ -597,16 +736,20 @@ def historial_reservas(request):
     cliente_id = request.session["cliente_id"]
     fechaActual = timezone.localdate()
     horaActual = timezone.localtime().time()
+    fechayhoraActual = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
 
     reservas_pasadas = Reserva.objects.filter(
-        cliente_id_res_id=cliente_id,
-        confirm_pago_res=True,
-        fecha_res__lte=fechaActual  # 👈 incluye hoy completo
+        cliente_id_res_id=cliente_id
     ).order_by("-fecha_res", "-hora_res")
+
+    if True:
+        for r in reservas_pasadas:
+            r.combineFyH = datetime.combine(r.fecha_res, r.hora_res).strftime("%Y-%m-%d %H:%M:%S")
 
 
     return render(request, "reservas/historial_reservas.html", {
-        "reservas_pasadas": reservas_pasadas
+        "reservas_pasadas": reservas_pasadas,
+        "fechayhoraActual": fechayhoraActual
     })
 
 
@@ -618,85 +761,86 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib import messages
 
-@requiere_login
-def admin_dashboard(request):
-    cliente_id = request.session["cliente_id"]
-    cli = get_object_or_404(Cliente, pk=cliente_id)
+# @requiere_login
+# def admin_dashboard(request):
+#     cliente_id = request.session["cliente_id"]
+#     cli = get_object_or_404(Cliente, pk=cliente_id)
 
-    if not getattr(cli, "is_owner", False):
-        messages.error(request, "No tienes permisos para ver esta página.")
-        return redirect("home")
+#     if not getattr(cli, "is_owner", False):
+#         messages.error(request, "No tienes permisos para ver esta página.")
+#         return redirect("home")
 
-    filtro = request.GET.get("filtro", "hoy")  # 'hoy' por defecto
-    fecha_str = request.GET.get("fecha", "")
+#     filtro = request.GET.get("filtro", "hoy")  # 'hoy' por defecto
+#     fecha_str = request.GET.get("fecha", "")
 
-    hoy = timezone.localdate()
+#     hoy = timezone.localdate()
 
-    # queryset base
-    reservas = Reserva.objects.all().select_related("cliente_id_res", "canino_id_res")
-    titulo_reservas = "Todas las reservas"
+#     # queryset base
+#     reservas = Reserva.objects.all().select_related("cliente_id_res", "canino_id_res")
+#     titulo_reservas = "Todas las reservas"
 
-    # ---- FILTROS ----
-    if filtro == "hoy":
-        reservas = reservas.filter(fecha_res=hoy)
-        titulo_reservas = "Reservas de hoy"
+#     # ---- FILTROS ----
+#     if filtro == "hoy":
+#         reservas = reservas.filter(fecha_res=hoy)
+#         titulo_reservas = "Reservas de hoy"
 
-    elif filtro == "manana":
-        manana = hoy + timedelta(days=1)
-        reservas = reservas.filter(fecha_res=manana)
-        titulo_reservas = "Reservas de mañana"
+#     elif filtro == "manana":
+#         manana = hoy + timedelta(days=1)
+#         reservas = reservas.filter(fecha_res=manana)
+#         titulo_reservas = "Reservas de mañana"
 
-    elif filtro == "semana":
-        fin_semana = hoy + timedelta(days=7)
-        reservas = reservas.filter(fecha_res__range=(hoy, fin_semana))
-        titulo_reservas = "Reservas próximos 7 días"
+#     elif filtro == "semana":
+#         fin_semana = hoy + timedelta(days=7)
+#         reservas = reservas.filter(fecha_res__range=(hoy, fin_semana))
+#         titulo_reservas = "Reservas próximos 7 días"
 
-    elif filtro == "todas":
-        titulo_reservas = "Todas las reservas"
+#     elif filtro == "todas":
+#         titulo_reservas = "Todas las reservas"
 
-    elif filtro == "fecha":
-        if fecha_str:
-            # Para DateField Django acepta 'YYYY-MM-DD' directamente, sin parsear
-            reservas = reservas.filter(fecha_res=fecha_str)
-            titulo_reservas = f"Reservas del {fecha_str}"
-        else:
-            reservas = reservas.none()
-            titulo_reservas = "Selecciona una fecha para ver reservas"
+#     elif filtro == "fecha":
+#         if fecha_str:
+#             # Para DateField Django acepta 'YYYY-MM-DD' directamente, sin parsear
+#             reservas = reservas.filter(fecha_res=fecha_str)
+#             titulo_reservas = f"Reservas del {fecha_str}"
+#         else:
+#             reservas = reservas.none()
+#             titulo_reservas = "Selecciona una fecha para ver reservas"
 
-    else:
-        # Cualquier cosa rara ⇒ volvemos a hoy
-        reservas = reservas.filter(fecha_res=hoy)
-        titulo_reservas = "Reservas de hoy"
+#     else:
+#         # Cualquier cosa rara ⇒ volvemos a hoy
+#         reservas = reservas.filter(fecha_res=hoy)
+#         titulo_reservas = "Reservas de hoy"
 
-    reservas = reservas.order_by("fecha_res", "hora_res")
+#     reservas = reservas.order_by("fecha_res", "hora_res")
 
-    return render(request, "reservas/admin_dashboard.html", {
-        "cliente": cli,
-        "reservas": reservas,
-        "titulo_reservas": titulo_reservas,
-        "filtro": filtro,
-        "fecha_str": fecha_str,
-    })
+#     return render(request, "reservas/admin_dashboard.html", {
+#         "cliente": cli,
+#         "reservas": reservas,
+#         "titulo_reservas": titulo_reservas,
+#         "filtro": filtro,
+#         "fecha_str": fecha_str,
+#     })
 
-def gestionar_productos(request):
-    if not request.user.is_owner:
-        return redirect("home")  # Solo los dueños pueden acceder
-    # Lógica para gestionar productos
-    return render(request, 'reservas/gestionar_productos.html')
+# def gestionar_productos(request):
+#     if not request.user.is_owner:
+#         return redirect("home")  # Solo los dueños pueden acceder
+#     # Lógica para gestionar productos
+#     return render(request, 'reservas/gestionar_productos.html')
 
-def ver_estadisticas(request):
-    if not request.user.is_owner:
-        return redirect("home")  # Solo los dueños pueden acceder
-    # Lógica para ver estadísticas (reservas, ventas, etc.)
-    return render(request, 'reservas/ver_estadisticas.html')
+# def ver_estadisticas(request):
+#     if not request.user.is_owner:
+#         return redirect("home")  # Solo los dueños pueden acceder
+#     # Lógica para ver estadísticas (reservas, ventas, etc.)
+#     return render(request, 'reservas/ver_estadisticas.html')
 
-def configuracion_tienda(request):
-    if not request.user.is_owner:
-        return redirect("home")  # Solo los dueños pueden acceder
-    # Lógica para configuraciones del sistema
-    return render(request, 'reservas/configuracion_tienda.html')
+# def configuracion_tienda(request):
+#     if not request.user.is_owner:
+#         return redirect("home")  # Solo los dueños pueden acceder
+#     # Lógica para configuraciones del sistema
+#     return render(request, 'reservas/configuracion_tienda.html')
 
-
+def gestionar_pagos(request):
+    return render(request, "gestionar_pagos")
 
 # ==========================
 # Panel del dueño / admin
@@ -704,7 +848,7 @@ def configuracion_tienda(request):
 
 ##def es_duenio(cliente: Cliente) -> bool:
     # 🔁 Ajusta este correo al que quieras usar como dueño
-    return cliente.email_cli.lower() == "diegoassd@gmail.com"
+    #return cliente.email_cli.lower() == "diegoassd@gmail.com"
 
 
 @requiere_login
@@ -727,6 +871,48 @@ def admin_dashboard(request):
     
 
     hoy = timezone.localdate()
+    horaActual = timezone.localtime()
+    #fechayhoraActual = timezone.localtime(timezone.now())
+    fechaActual = timezone.localtime().date()
+    print(hoy)
+
+    reservaRecienteyActual = Reserva.objects.filter(fecha_res=hoy, hora_res__lte=horaActual).order_by("-hora_res")[:2]
+    for rr in reservaRecienteyActual:
+        finDuracionR = timezone.make_aware(
+            datetime.combine(rr.fecha_res, rr.hora_res),
+            timezone.get_current_timezone()) + DURACIONES[rr.servicio_res]
+        if finDuracionR < horaActual:
+            rr.res_reciente = Reserva.objects.get(pk=rr.pk)
+            break
+        elif finDuracionR >= horaActual:
+            rr.res_actual = Reserva.objects.get(pk=rr.pk)
+    #cambiar estado de pago 
+    # confirmar = 0
+    # if request.GET.get("getConfirmar"):
+    #     confirmar = 1
+    # if request.POST.get("getConfirmar"):
+    #     ress = Reserva.objects.get(pk=request.POST.get("getConfirmar"))
+    #     if ress.confirm_pago_res == False:
+    #         ress.confirm_pago_res = True
+    #         ress.save()
+    #     else:
+    #         ress.confirm_pago_res = False
+    #         ress.save()
+    #     return redirect("admin_dashboard")
+
+    #Ingresar precio final
+    # cambPrecio = 0
+    # if request.GET.get("getPrecio"):
+    #     cambPrecio = 1
+    # if request.POST.get("getPrecio"):
+    #     ress = Reserva.objects.get(pk=request.POST.get("getPrecio"))
+    #     if ress.confirm_pago_res == False:
+    #         ress.confirm_pago_res = True
+    #         ress.save()
+    #     else:
+    #         ress.confirm_pago_res = False
+    #         ress.save()
+    #     return redirect("admin_dashboard")
 
     # ⚠️ por defecto: mostrar TODAS las reservas (como tú tenías)
     filtro = request.GET.get("filtro", "todas")
@@ -769,7 +955,7 @@ def admin_dashboard(request):
         reservas = reservas_qs
         titulo_reservas = "Todas las reservas"
 
-    reservas = reservas.order_by("fecha_res", "hora_res")
+    reservas = reservas.order_by("-fecha_res", "-hora_res")
     
 
     # ============================================================
@@ -778,18 +964,18 @@ def admin_dashboard(request):
 
     # 1) RAZAS MÁS CONCURRENTES (top 3)
     razas_top = (
-        Reserva.objects.select_related("canino_id_res")
+        Reserva.objects.filter(confirm_pago_res=True)
         .values("canino_id_res__raza_can")
         .annotate(total=Count("id_reserva"))
-        .order_by("-total")[:3]
+        .order_by("-total")[:4]
     )
 
     # 2) CLIENTES MÁS CONCURRENTES (top 3)
     clientes_top = (
-        Reserva.objects.select_related("cliente_id_res")
-        .values("cliente_id_res__nombres_cli", "cliente_id_res__apellidos_cli")
+        Reserva.objects.filter(confirm_pago_res=True)
+        .values("cliente_id_res__email_cli", "cliente_id_res__nombres_cli", "cliente_id_res__apellidos_cli")
         .annotate(total=Count("id_reserva"))
-        .order_by("-total")[:3]
+        .order_by("-total")[:4]
     )
 
     # 3) INGRESOS DEL MES ACTUAL (solo pagadas)
@@ -822,6 +1008,9 @@ def admin_dashboard(request):
         "clientes_top": clientes_top,
         "ingresos_mes": ingresos_mes,
         "ingresos_por_mes": ingresos_por_mes,
+        "reservaRecienteyActual": reservaRecienteyActual,
+        #"confirmar": confirmar,
+        #"cambPrecio": cambPrecio
     })
 
     
@@ -856,6 +1045,7 @@ def admin_reserva_detalle(request, pk):
                     if nuevo_valor_int < 0:
                         raise ValueError("El valor no puede ser negativo.")
                     reserva.valor_res = nuevo_valor_int
+                    reserva.verificando = False
 
                 if nuevo_medio:
                     reserva.medio_pago_res = nuevo_medio
@@ -867,15 +1057,27 @@ def admin_reserva_detalle(request, pk):
 
             return redirect("admin_reserva_detalle", pk=pk)
 
-        # Confirmar pago
-        if "confirmar_pago" in request.POST:
+    # Confirmar pago
+    confirmPago = 0
+    if "pre_confirmar_pago" in request.GET:
+        confirmPago = 1
+    if "confirmar_pago" in request.POST: #FALTa terminar lo de cancelar pago
+        print("JEJEJJE")
+        if reserva.confirm_pago_res:
+            print("KAKKAKAKAKK")
+            print(reserva.confirm_pago_res)
+            reserva.confirm_pago_res = False
+            reserva.save()
+            messages.success(request, "Pago cancelado correctamente ❌")
+        elif not reserva.confirm_pago_res:
             reserva.confirm_pago_res = True
-            # Si quieres, podrías forzar un medio de pago aquí si está vacío
-            if not reserva.medio_pago_res:
-                reserva.medio_pago_res = "Efectivo"
             reserva.save()
             messages.success(request, "Pago confirmado correctamente ✅")
-            return redirect("admin_reserva_detalle", pk=pk)
+        # Si quieres, podrías forzar un medio de pago aquí si está vacío
+        # if not reserva.medio_pago_res:
+        #     reserva.medio_pago_res = "Efectivo"
+        #reserva.save()
+        return redirect("admin_reserva_detalle", pk=pk)
 
     cliente_res = reserva.cliente_id_res
     canino_res = reserva.canino_id_res
@@ -885,6 +1087,7 @@ def admin_reserva_detalle(request, pk):
         "reserva": reserva,         # reserva
         "cliente_res": cliente_res, # cliente de la reserva
         "canino_res": canino_res,   # perro de la reserva
+        "confirmPago": confirmPago
     })
 
 def activar_cuenta(request, token):

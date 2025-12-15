@@ -1,17 +1,175 @@
 {% extends 'reservas/base.html' %}
 
 {% block content %}
-  <h1>Bienvenido al Panel de Administración, {{ cliente.nombres_cli }} {{ cliente.apellidos_cli }} 👑</h1>
-  <h2>Opciones Administrativas</h2>
+  <h1>Panel administrador</h1>
 
   <hr>
 
+  <div class="d-flex mb-3 gap-2">
+    <!--<a href="{% url 'ver_reservas' %}" class="btn btn-success w-50">Gestionar Pagos</a>-->
+    <button class="btn btn-outline-primary w-50" onclick="location.href='#reportes2'">Reportes</button>
+    <button class="btn btn-primary w-50" onclick="location.href='#titulo_reservas'">Gestionar reservas</button>
+  </div>
+
+  <!-- Ingresos del mes -->
+  <!-- <div class="row mb-1">
+    <div class="col-md-4 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body"> -->
+      <div class="row mb-1">  
+  {% for rr in reservaRecienteyActual %}      
+    {% if rr.res_reciente %}
+        <div class="col-md-4 mb-3">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="text-center mb-5">Reserva reciente</h5>
+
+              <!-- Info principal -->
+              <div class="mb-3">
+                <div class="fw-semibold text-muted small">Detalle de la reserva</div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <span class="text-muted small">Cliente</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_reciente.cliente_id_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Canino</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_reciente.canino_id_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Servicio</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_reciente.servicio_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Fecha y hora</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_reciente.fecha_res|date:"d-m-Y" }} --- {{ rr.res_reciente.hora_res|time:"H:i" }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Estado de pago</span>
+                  {% if rr.res_reciente.confirm_pago_res %}
+                    <div class="fw-semibold">
+                      Confirmado
+                    </div>
+                  {% else %}
+                    <div class="fw-semibold text-danger">
+                      Pendiente
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Valor -->
+              <div class="border-top pt-3 mb-3">
+                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                  <div>
+                    <span class="text-muted small">Valor</span>
+                    <div class="fw-bold fs-5 text-success">
+                      ${{ rr.res_reciente.valor_res }}
+                    </div>
+                  </div>
+                  <a href="{% url 'admin_reserva_detalle' pk=rr.res_reciente.pk %}" class="btn btn-success">Gestionar</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    {% endif %}
+    {% if rr.res_actual %}
+      
+        <div class="col-md-4 mb-3">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="text-center mb-5">Reserva actual</h5>
+              <!-- Info principal -->
+              <div class="mb-3">
+                <div class="fw-semibold text-muted small">Detalle de la reserva</div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <span class="text-muted small">Cliente</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_actual.cliente_id_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Canino</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_actual.canino_id_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Servicio</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_actual.servicio_res }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Fecha y hora</span>
+                  <div class="fw-semibold">
+                    {{ rr.res_actual.fecha_res|date:"d-m-Y" }} --- {{ rr.res_actual.hora_res|time:"H:i" }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <span class="text-muted small">Estado de pago</span>
+                  {% if rr.res_actual.confirm_pago_res %}
+                    <div class="fw-semibold">
+                      Confirmado
+                    </div>
+                  {% else %}
+                    <div class="fw-semibold text-danger">
+                      Pendiente
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Valor -->
+              <div class="border-top pt-3 mb-3">
+                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                  <div>
+                    <span class="text-muted small">Valor</span>
+                    <div class="fw-bold fs-5 text-success">
+                      ${{ rr.res_actual.valor_res }}
+                    </div>
+                  </div>
+                  <a href="{% url 'admin_reserva_detalle' pk=rr.res_actual.pk %}" class="btn btn-success">Gestionar</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    {% endif %}
+  {% endfor %}
+      </div>
+  <hr id="reportes2">
+
+  <h3 class="mb-3 text-center">Reportes</h3>
+
   {# ===================== REPORTES RÁPIDOS ===================== #}
-  <div class="row mb-4">
+  <div class="row mb-1">
     <!-- Ingresos del mes -->
     <div class="col-md-4 mb-3">
       <div class="card h-100">
-        <div class="card-header bg-warning">
+        <div class="card-header text-white" style="background-color: #00552a;">
           <strong>Ingresos del mes actual</strong>
         </div>
         <div class="card-body">
@@ -26,27 +184,29 @@
     <!-- Razas más concurrentes -->
     <div class="col-md-4 mb-3">
       <div class="card h-100">
-        <div class="card-header bg-info text-white">
+        <div class="card-header bg-primary text-white">
           <strong>Razas más concurrentes</strong>
         </div>
         <div class="card-body p-2">
           {% if razas_top %}
-            <table class="table table-sm mb-0">
-              <thead>
-                <tr>
-                  <th>Raza</th>
-                  <th class="text-end">Reservas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in razas_top %}
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
                   <tr>
-                    <td>{{ r.canino_id_res__raza_can }}</td>
-                    <td class="text-end">{{ r.total }}</td>
+                    <th>Raza</th>
+                    <th class="text-end">Reservas</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for r in razas_top %}
+                    <tr>
+                      <td>{{ r.canino_id_res__raza_can }}</td>
+                      <td class="text-end">{{ r.total }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="mb-0">Aún no hay reservas.</p>
           {% endif %}
@@ -57,29 +217,31 @@
     <!-- Clientes más concurrentes -->
     <div class="col-md-4 mb-3">
       <div class="card h-100">
-        <div class="card-header bg-success text-white">
+        <div class="card-header text-white" style="background-color: #d86615;">
           <strong>Clientes más concurrentes</strong>
         </div>
         <div class="card-body p-2">
           {% if clientes_top %}
-            <table class="table table-sm mb-0">
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th class="text-end">Reservas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for c in clientes_top %}
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
                   <tr>
-                    <td>
-                      {{ c.cliente_id_res__nombres_cli }} {{ c.cliente_id_res__apellidos_cli }}
-                    </td>
-                    <td class="text-end">{{ c.total }}</td>
+                    <th>Cliente</th>
+                    <th class="text-end">Reservas</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for c in clientes_top %}
+                    <tr>
+                      <td>
+                        {{ c.cliente_id_res__nombres_cli }} {{ c.cliente_id_res__apellidos_cli }}
+                      </td>
+                      <td class="text-end">{{ c.total }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="mb-0">Aún no hay reservas.</p>
           {% endif %}
@@ -92,27 +254,29 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color: #00ff80;">
           <strong>Ingresos mensuales (últimos meses)</strong>
         </div>
         <div class="card-body p-2">
           {% if ingresos_por_mes %}
-            <table class="table table-sm mb-0">
-              <thead>
-                <tr>
-                  <th>Mes</th>
-                  <th class="text-end">Ingresos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for m in ingresos_por_mes %}
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
                   <tr>
-                    <td>{{ m.mes|date:"m/Y" }}</td>
-                    <td class="text-end">${{ m.total }}</td>
+                    <th>Mes</th>
+                    <th class="text-end">Ingresos</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {% for m in ingresos_por_mes %}
+                    <tr>
+                      <td>{{ m.mes|date:"m/Y" }}</td>
+                      <td class="text-end">${{ m.total }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           {% else %}
             <p class="mb-0">Aún no hay ingresos registrados.</p>
           {% endif %}
@@ -120,115 +284,119 @@
       </div>
     </div>
   </div>
+
+  <hr id="titulo_reservas">
   
-  <h3>{{ titulo_reservas }}</h3>
+  <h3 class="text-center mb-3">Gestionar reservas</h3>
+  <!--<h5 id="titulo_reservas">Mostrando: {{ titulo_reservas }}</h5>-->
 
   <!-- Filtros de fecha -->
-<form method="get" class="row g-2 mb-3 align-items-end">
-  <div class="col-auto">
-    <label for="filtro" class="form-label mb-1">Filtrar por</label>
-    <select name="filtro" id="filtro" class="form-select">
-      <option value="hoy" {% if filtro == 'hoy' %}selected{% endif %}>Hoy</option>
-      <option value="manana" {% if filtro == 'manana' %}selected{% endif %}>Mañana</option>
-      <option value="semana" {% if filtro == 'semana' %}selected{% endif %}>Próximos 7 días</option>
-      <option value="todas" {% if filtro == 'todas' %}selected{% endif %}>Todas las reservas</option>
-      <option value="fecha" {% if filtro == 'fecha' %}selected{% endif %}>Fecha específica</option>
-    </select>
-  </div>
+  <form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+      <label for="filtro" class="form-label mb-1">Filtrar por</label>
+      <select name="filtro" id="filtro" class="form-select">
+        <option value="hoy" {% if filtro == 'hoy' %}selected{% endif %}>Hoy</option>
+        <option value="manana" {% if filtro == 'manana' %}selected{% endif %}>Mañana</option>
+        <option value="semana" {% if filtro == 'semana' %}selected{% endif %}>Próximos 7 días</option>
+        <option value="todas" {% if filtro == 'todas' %}selected{% endif %}>Todas las reservas</option>
+        <option value="fecha" {% if filtro == 'fecha' %}selected{% endif %}>Fecha específica</option>
+      </select>
+    </div>
 
-  <div class="col-auto">
-    <label for="fecha" class="form-label mb-1">Fecha</label>
-    <input
-      type="date"
-      id="fecha"
-      name="fecha"
-      class="form-control"
-      value="{{ fecha_str }}"
-    >
-  </div>
+    <div class="col-auto">
+      <label for="fecha" class="form-label mb-1">Fecha</label>
+      <input
+        type="date"
+        id="fecha"
+        name="fecha"
+        class="form-control"
+        value="{{ fecha_str }}"
+      >
+    </div>
 
-  <div class="col-auto">
-    <button type="submit" class="btn btn-primary mt-2">Aplicar</button>
-  </div>
-</form>
-
-  <table class="table table-striped">
-    <thead>
-  <tr>
-    <th>Cliente</th>
-    <th>Canino</th>
-    <th>Servicio</th>
-    <th>Fecha</th>
-    <th>Hora</th>
-    <th>Estado</th>  {# 👈 NUEVA COLUMNA #}
-    <th>Acciones</th>
-  </tr>
-</thead>
-
-<tbody>
-  {% for r in reservas %}
-    <tr>
-      <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
-      <td>{{ r.canino_id_res.nombre_can }}</td>
-      <td>{{ r.servicio_res }}</td>
-      <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
-      <td>{{ r.hora_res|time:"H:i" }}</td>
-      <td>
-        {% if r.confirm_pago_res %}
-          <span class="badge bg-success">Pagado</span>
-        {% else %}
-          <span class="badge bg-warning text-dark">Pendiente</span>
-        {% endif %}
-      </td>
-      <td>
-  <a href="{% url 'admin_reserva_detalle' r.pk %}" class="btn btn-sm btn-outline-primary">
-    Ver detalle
-  </a>
-
-  <form method="post" action="{% url 'admin_dashboard' %}" class="d-inline ms-1">
-    {% csrf_token %}
-    <input type="hidden" name="reserva_id" value="{{ r.pk }}">
-    <button type="button" class="btn btn-sm btn-outline-danger"
-        data-bs-toggle="modal"
-        data-bs-target="#confirmCancelModal"
-        data-reserva-id="{{ r.pk }}">
-  Cancelar
-</button>
-
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary mt-2">Aplicar</button>
+    </div>
   </form>
-</td>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Canino</th>
+          <th>Servicio</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>  {# 👈 NUEVA COLUMNA #}
+          <th>Acciones</th>
+        </tr>
+      </thead>
 
-    </tr>
-  {% empty %}
-    <tr>
-      <td colspan="7" class="text-center">No hay reservas para el filtro seleccionado.</td>
-    </tr>
-  {% endfor %}
-</tbody>
+    <tbody>
+      {% for r in reservas %}
+        <tr>
+          <td>{{ r.cliente_id_res.nombres_cli }} {{ r.cliente_id_res.apellidos_cli }}</td>
+          <td>{{ r.canino_id_res.nombre_can }}</td>
+          <td>{{ r.servicio_res }}</td>
+          <td>{{ r.fecha_res|date:"d-m-Y" }}</td>
+          <td>{{ r.hora_res|time:"H:i" }}</td>
+          <td>
+            {% if r.confirm_pago_res %}
+              <span class="badge bg-success">Pagado</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Pendiente</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'admin_reserva_detalle' r.pk %}" class="btn btn-sm btn-outline-primary">
+              Ver detalle
+            </a>
 
-</table>
-<!-- Modal de confirmación -->
-<div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="confirmCancelLabel">¿Cancelar reserva?</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        Esta acción no se puede deshacer. ¿Estás seguro de cancelar esta reserva?
-      </div>
-      <div class="modal-footer">
-        <form id="cancelForm" method="post" action="{% url 'admin_dashboard' %}">
-          {% csrf_token %}
-          <input type="hidden" name="reserva_id" id="reservaIdInput">
-          <button type="submit" name="cancelar_admin" class="btn btn-danger">Sí, cancelar</button>
-        </form>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No cancelar</button>
+            <form method="post" action="{% url 'admin_dashboard' %}" class="d-inline ms-1">
+              {% csrf_token %}
+              <input type="hidden" name="reserva_id" value="{{ r.pk }}">
+              <button type="button" class="btn btn-sm btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#confirmCancelModal"
+                  data-reserva-id="{{ r.pk }}">
+                Cancelar
+              </button>
+
+            </form>
+          </td>
+
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" class="text-center">No hay reservas para el filtro seleccionado.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+
+    </table>
+  </div>
+  <!-- Modal de confirmación -->
+  <div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="confirmCancelLabel">¿Cancelar reserva?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          Esta acción no se puede deshacer. ¿Estás seguro de cancelar esta reserva?
+        </div>
+        <div class="modal-footer">
+          <form id="cancelForm" method="post" action="{% url 'admin_dashboard' %}">
+            {% csrf_token %}
+            <input type="hidden" name="reserva_id" id="reservaIdInput">
+            <button type="submit" name="cancelar_admin" class="btn btn-danger">Sí, cancelar</button>
+          </form>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No cancelar</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 
 

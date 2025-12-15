@@ -61,8 +61,11 @@ class Reserva(models.Model):
     servicio_res = models.CharField("Servicio", max_length=255) 
     hora_res = models.TimeField("Hora")
     fecha_res = models.DateField("Fecha")
-    medio_pago_res = models.CharField("Medio de pago", max_length=15)
+    medio_pago_res = models.CharField("Medio de pago", max_length=17)
     valor_res = models.PositiveIntegerField("Valor")
+    abono = models.BooleanField("Abono", default=False)
+    verificando = models.BooleanField("Verificando transferencia", default=False)
+    idPago = models.CharField("ID pago vía khipu", null=True, max_length=100)
     confirm_pago_res = models.BooleanField("Pago confirmado", default=False)
     cliente_id_res = models.ForeignKey(
         Cliente,

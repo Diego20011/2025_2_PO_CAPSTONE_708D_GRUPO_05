@@ -1,26 +1,42 @@
 {% extends 'reservas/base.html' %}
 
 {% block content %}
-  <h2>📜 Historial de Reservas</h2>
+<div class="container d-flex justify-content-center align-items-start" style="min-height: 80vh;">
+  <div class="card col-12 col-md-10 col-lg-8 p-4 shadow-sm">
+    <h2 class="mb-4">📜 Historial de Reservas</h2>
 
-  {% if reservas_pasadas %}
-    {% for r in reservas_pasadas %}
-      <div class="card mb-3 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title">{{ r.servicio_res }}</h5>
-          <p><strong>🐶 Mascota:</strong> {{ r.canino_id_res.nombre_can }}</p>
-          <p><strong>📅 Fecha:</strong> {{ r.fecha_res|date:"d \d\e F \d\e Y" }} | <strong>🕒 Hora:</strong> {{ r.hora_res|time:"H:i" }}</p>
-          <p><strong>💳 Medio de pago:</strong> {{ r.medio_pago_res }}</p>
-          <p><strong>💰 Valor:</strong> ${{ r.valor_res }}</p>
-          <span class="badge bg-success">Pagado</span>
+    {% if reservas_pasadas %}
+      {% for r in reservas_pasadas %}
+        <div class="card mb-3 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{{ r.servicio_res }}</h5>
+            <p><strong>🐶 Mascota:</strong> {{ r.canino_id_res.nombre_can }}</p>
+            <p><strong>📅 Fecha:</strong> {{ r.fecha_res|date:"d \d\e F \d\e Y" }}</p>  
+            <p><strong>🕒 Hora:</strong> {{ r.hora_res|time:"H:i" }}</p>
+            <p><strong>💳 Medio de pago:</strong> {{ r.medio_pago_res }}</p>
+            <p><strong>💰 Valor:</strong> ${{ r.valor_res }}</p>
+            <p class="d-flex align-items-center gap-2"><strong>Estado de pago:</strong>
+              {% if r.confirm_pago_res %}
+                <span class="badge bg-success">Pagado</span>
+              {% elif r.medio_pago_res == "Efectivo" and r.combineFyH < fechayhoraActual %}
+                <span class="badge bg-secondary">En espera</span>
+              {% elif r.medio_pago_res == "Transferencia" and r.verificando %}
+                <span class="badge" style="background-color: #d6d8db; color: #495057;">⏳Verificando</span>
+              {% elif r.abono and not r.confirm_pago_res %}
+                <span class="badge" style="background-color: #dbeafe; color: #1e40af;">Abonado</span>
+              {% else %}
+                <span class="badge" style="background-color: #f7c600; color: #ff0000;">Sin pagar</span>
+              {% endif %}
+            </p>
+          </div>
         </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info text-center">
+        No tienes reservas pasadas registradas.
       </div>
-    {% endfor %}
-  {% else %}
-    <div class="alert alert-info text-center">
-      No tienes reservas pasadas registradas.
-    </div>
-  {% endif %}
-
-  <a href="{% url 'ver_reservas' %}" class="btn btn-outline-primary mt-3">Volver</a>
+    {% endif %}
+    <a href="{% url 'ver_reservas' %}" class="btn btn-outline-primary mb-3">Volver</a>
+  </div>
+</div>    
 {% endblock %}
